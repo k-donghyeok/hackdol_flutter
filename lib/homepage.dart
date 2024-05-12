@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/block_tell.dart';
 
+import 'FreeBoardPage.dart';
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key});
 
@@ -83,7 +85,10 @@ class MainScreen extends StatelessWidget {
                 ListTile(
                   title: Text('자유게시판'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => FreeBoardPage()),
+                    );
                   },
                 ),
                 ListTile(
