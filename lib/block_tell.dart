@@ -7,18 +7,41 @@ class BlockPhoneNumberPage extends StatefulWidget {
 }
 
 class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
-  TextEditingController _phoneNumberController = TextEditingController();
+  static const platform = MethodChannel('com.example.block_phone_number');
 
-  // 네이티브 코드를 호출하여 전화번호를 전달하는 메서드
-  Future<void> _callNativeCode(String phoneNumber) async {
-    const platform = MethodChannel('com.example.myplugin/my_channel');
+  TextEditingController _phoneNumberController = TextEditingController();
+  List<String> _blockedNumbers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // 이미 차단된 전화번호들을 가져와서 리스트에 추가합니다.
+    _loadBlockedNumbers();
+  }
+
+  // 이미 차단된 전화번호들을 가져와서 리스트에 추가하는 메서드
+  Future<void> _loadBlockedNumbers() async {
     try {
-      // 네이티브 코드의 메서드를 호출하고 전화번호를 전달합니다.
-      await platform.invokeMethod('blockPhoneNumber', phoneNumber);
-      print('Phone number blocked: $phoneNumber');
+      List<dynamic> blockedNumbers =
+      await platform.invokeMethod('getBlockedNumbers');
+      setState(() {
+        _blockedNumbers = blockedNumbers.cast<String>();
+      });
     } on PlatformException catch (e) {
-      // 오류 처리
-      print('Error blocking phone number: ${e.message}');
+      print('Error loading blocked numbers: ${e.message}');
+    }
+  }
+
+  Future<void> _callNativeCode(String phoneNumber) async {
+    try {
+      await platform.invokeMethod('blockPhoneNumber', {'phoneNumber': phoneNumber});
+      print('전화번호가 차단되었습니다: $phoneNumber');
+      // 차단된 전화번호를 리스트에 추가합니다.
+      setState(() {
+        _blockedNumbers.add(phoneNumber);
+      });
+    } on PlatformException catch (e) {
+      print('전화번호 차단 중 오류 발생: ${e.message}');
     }
   }
 
@@ -54,6 +77,22 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
                 );
               },
               child: Text('전화번호 차단'),
+            ),
+            SizedBox(height: 20),
+            Text(
+              '차단된 전화번호 목록',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _blockedNumbers.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(_blockedNumbers[index]),
+                    leading: Icon(Icons.block),
+                  );
+                },
+              ),
             ),
           ],
         ),

@@ -25,13 +25,7 @@
         </activity>
 
         <!-- 전화번호 차단 서비스 -->
-        <service android:name=".hackdolBlockingService"
-            android:permission="android.permission.BIND_SCREENING_SERVICE"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.telecom.CallScreeningService"/>
-            </intent-filter>
-        </service>
+
 
 
         <!-- Flutter Embedding 메타데이터 -->
