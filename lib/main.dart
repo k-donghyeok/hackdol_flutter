@@ -1,23 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:hackdol1_1/homepage.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:hackdol1_1/homepage.dart'; // <-- 이 줄은 수정되어야 합니다.
+import 'package:hackdol1_1/pages/login_page.dart';
+import 'package:hackdol1_1/pages/join.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key});
+  const MyApp({Key? key}) : super(key:key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+            minimumSize: Size(400,60),
+          ),
+        ),
       ),
-      home: const MyHomePage(),
+      initialRoute: "/login",
+      routes: {
+        "/login": (context) => LoginPage(),
+        "/home" : (context) => MainScreen(),
+        "/registration" : (context) => RegistrationForm(),
+      },
     );
   }
 }
@@ -30,8 +44,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,16 +51,13 @@ class _MyHomePageState extends State<MyHomePage> {
         title: const Text("Test title"),
       ),
       body: Center(
-        child: GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => MainScreen()),
-            );
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.pushNamed(context, "/registration");
           },
           child: Container(
             padding: const EdgeInsets.all(15),
-            child: Text("시작"),
+            child: Text("회원가입"), // 수정된 부분: 버튼 텍스트를 "회원가입"으로 변경
           ),
         ),
       ),
