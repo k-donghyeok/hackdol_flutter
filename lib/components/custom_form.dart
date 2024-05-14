@@ -64,7 +64,7 @@ class CustomForm extends StatelessWidget {
             obscureText: true, // 비밀번호 필드는 **** 처리
           ),
           SizedBox(height: largeGap),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
                 _login(context);
