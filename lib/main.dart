@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:hackdol1_1/components/custom_form.dart';
 import 'package:hackdol1_1/components/logo.dart';
 import 'package:hackdol1_1/size.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {

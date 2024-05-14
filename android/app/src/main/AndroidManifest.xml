@@ -3,7 +3,7 @@
 
     <application
         android:label="hackdol1_1"
-        android:name="${applicationName}"
+        android:name="io.flutter.app.FlutterMultiDexApplication"
         android:icon="@mipmap/ic_launcher">
 
         <!-- 플러터 액티비티 -->

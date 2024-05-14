@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegistrationForm extends StatefulWidget {
   @override
@@ -7,12 +9,55 @@ class RegistrationForm extends StatefulWidget {
 
 class _RegistrationFormState extends State<RegistrationForm> {
   final _formKey = GlobalKey<FormState>();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String? _name;
   String? _phoneNumber;
   String? _gender;
   String? _email;
   String? _password;
+
+  Future<void> _register() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      try {
+        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: _email!,
+          password: _password!,
+        );
+
+        // Firestore에 추가 사용자 정보 저장
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'name': _name,
+          'phoneNumber': _phoneNumber,
+          'gender': _gender,
+          'email': _email,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('회원가입이 완료되었습니다.')),
+        );
+
+        // 로그인 페이지 또는 메인 페이지로 이동
+        // Navigator.pushNamed(context, "/login");
+      } on FirebaseAuthException catch (e) {
+        String message;
+        if (e.code == 'weak-password') {
+          message = '비밀번호가 너무 약합니다.';
+        } else if (e.code == 'email-already-in-use') {
+          message = '해당 이메일은 이미 사용 중입니다.';
+        } else {
+          message = '회원가입에 실패했습니다. 다시 시도해주세요.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,13 +146,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    // 회원가입 정보를 저장하거나 다른 작업 수행
-                    // 예: AuthService().register(_name, _phoneNumber, _gender, _email, _password);
-                  }
-                },
+                onPressed: _register,
                 child: Text('회원가입'),
               ),
             ],
