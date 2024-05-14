@@ -61,6 +61,7 @@ flutter:
   assets:
     - assets/image/police.png
     - assets/image/kisa.png
+    - assets/image/logo.svg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -11,7 +11,7 @@ class Logo extends StatelessWidget {
     return Column(
       children: [
         SvgPicture.asset(
-          "assets/logo.svg",
+          "assets/image/logo.svg",
           height: 70,
           width: 70,
         ),
