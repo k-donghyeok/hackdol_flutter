@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example">
-
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+    <uses-permission android:name="android.permission.MODIFY_PHONE_STATE"/>
     <application
         android:label="hackdol1_1"
         android:name="io.flutter.app.FlutterMultiDexApplication"
@@ -24,9 +26,13 @@
             </intent-filter>
         </activity>
 
-        <!-- 전화번호 차단 서비스 -->
-
-
+        <receiver android:name=".callReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
 
         <!-- Flutter Embedding 메타데이터 -->
         <meta-data

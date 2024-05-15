@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -10,6 +11,7 @@ class BlockPhoneNumberPage extends StatefulWidget {
 class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const platform = MethodChannel('com.yourapp/block_call');
 
   User? _user;
   TextEditingController _phoneNumberController = TextEditingController();
@@ -25,6 +27,7 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
     _user = _auth.currentUser;
     if (_user != null) {
       _loadBlockedNumbers();
+      _updateBlockedNumbersOnNative();
     }
   }
 
@@ -38,6 +41,7 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
         setState(() {
           _blockedNumbers = blockedNumbers.cast<String>();
         });
+        _updateBlockedNumbersOnNative();
       }
     } catch (e) {
       print('Error loading blocked numbers: $e');
@@ -66,11 +70,21 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$phoneNumber has been blocked.')),
       );
+
+      _updateBlockedNumbersOnNative();
     } catch (e) {
       print('Error blocking phone number: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to block phone number.')),
       );
+    }
+  }
+
+  Future<void> _updateBlockedNumbersOnNative() async {
+    try {
+      await platform.invokeMethod('updateBlockedNumbers', _blockedNumbers);
+    } on PlatformException catch (e) {
+      print("Failed to update blocked numbers on native: '${e.message}'.");
     }
   }
 
