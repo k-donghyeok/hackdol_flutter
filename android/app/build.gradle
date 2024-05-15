@@ -28,7 +28,6 @@ if (flutterVersionName == null) {
 android {
     namespace "com.example.hackdol1_1"
     compileSdkVersion 34
-
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -71,4 +70,5 @@ flutter {
 
 dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
+
 }
