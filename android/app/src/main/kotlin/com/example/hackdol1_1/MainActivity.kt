@@ -42,16 +42,16 @@ class MainActivity : FlutterActivity() {
 
                 if (state == TelephonyManager.EXTRA_STATE_RINGING && incomingNumber != null) {
                     if (blockedNumbers.contains(incomingNumber)) {
-                        val telephonyService = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-                        try {
-                            val method = telephonyService.javaClass.getDeclaredMethod("getITelephony")
-                            method.isAccessible = true
-                            val telephonyInterface = method.invoke(telephonyService)
-                            val endCallMethod = telephonyInterface.javaClass.getDeclaredMethod("endCall")
-                            endCallMethod.invoke(telephonyInterface)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+                            val blockedNumbers = blockedNumbers.toTypedArray()
+                            for (number in blockedNumbers) {
+                                telecomManager.addBlockedNumber(number)
+                            }
+                        } else {
+                            // Android 10 미만의 버전에서는 해당 로직을 지원하지 않음
                         }
+
                     }
                 }
             }
