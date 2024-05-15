@@ -27,6 +27,7 @@ class CallReceiver : BroadcastReceiver() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // Android 11 이상에서는 TelecomManager를 사용하여 전화 거절
             telecomManager.endCall()
+            Log.d("CallReceiver", "Call rejected using TelecomManager")
         } else {
             // Android 10 이하에서는 ITelephony를 사용하여 전화 거절
             try {
@@ -34,10 +35,13 @@ class CallReceiver : BroadcastReceiver() {
                 val methodEndCall = telephonyServiceClass.getDeclaredMethod("endCall")
                 methodEndCall.isAccessible = true
                 methodEndCall.invoke(telephonyManager)
+                Log.d("CallReceiver", "Call rejected using ITelephony")
             } catch (e: Exception) {
                 e.printStackTrace()
+                Log.e("CallReceiver", "Error rejecting call: ${e.message}")
             }
         }
     }
+
 
 }
