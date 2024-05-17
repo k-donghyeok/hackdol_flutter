@@ -42,14 +42,19 @@ class MainActivity : FlutterActivity() {
 
         // Check and request necessary permissions
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED ||
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.MODIFY_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ANSWER_PHONE_CALLS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(
                     Manifest.permission.READ_PHONE_STATE,
+                    Manifest.permission.READ_CALL_LOG,
                     Manifest.permission.CALL_PHONE,
-                    Manifest.permission.READ_CALL_LOG
+                    Manifest.permission.MODIFY_PHONE_STATE,
+                    Manifest.permission.ANSWER_PHONE_CALLS
             ), 1)
         }
+
 
         // Register the CallReceiver to listen to phone state changes
         val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
