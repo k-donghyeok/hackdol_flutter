@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/block_tell.dart';
-
 import 'FreeBoardPage.dart';
+import 'myfirebase.dart';
+import 'nativeCommunication.dart';
+
+void main() {
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -19,15 +24,38 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainScreen extends StatelessWidget {
+class MainScreen extends StatefulWidget {
   MainScreen({Key? key}) : super(key: key);
 
+  @override
+  _MainScreenState createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
   final postList = [
     {"rank": 1, "title": "010-6326-2371", "reportCount": 34},
     {"rank": 2, "title": "010-6326-2371", "reportCount": 32},
     {"rank": 3, "title": "010-6326-2371", "reportCount": 30},
     {"rank": 4, "title": "010-6326-2371", "reportCount": 28},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePage();
+  }
+
+  Future<void> _initializePage() async {
+    final FirebaseService _firebaseService = FirebaseService();
+
+    try {
+      List<String> blockedNumbers = await _firebaseService.loadBlockedNumbers();
+      NativeCommunication.updateBlockedNumbers(blockedNumbers);
+    } catch (e) {
+      print('Error loading blocked numbers: $e');
+    }
+    print("MainScreen이 처음 실행되었습니다.");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +93,7 @@ class MainScreen extends StatelessWidget {
                 ListTile(
                   title: Text('번호 차단'),
                   onTap: () {
-                    Navigator.push( // 네비게이션을 통해 다른 화면으로 이동
+                    Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => BlockPhoneNumberPage()),
                     );
@@ -80,7 +108,7 @@ class MainScreen extends StatelessWidget {
                 ListTile(
                   title: Text('차단된 메시지'),
                   onTap: () {
-                    Navigator.push( // 네비게이션을 통해 다른 화면으로 이동
+                    Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => BlockPhoneNumberPage()),
                     );
@@ -150,11 +178,11 @@ class MainScreen extends StatelessWidget {
                 DataColumn(label: Text('신고수', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
               rows: postList.map((data) => DataRow(
-                  cells: [
-                    DataCell(Text(data['rank'].toString())),
-                    DataCell(Text(data['title'].toString())),
-                    DataCell(Text(data['reportCount'].toString())),
-                  ]
+                cells: [
+                  DataCell(Text(data['rank'].toString())),
+                  DataCell(Text(data['title'].toString())),
+                  DataCell(Text(data['reportCount'].toString())),
+                ],
               )).toList(),
             ),
           ),
@@ -235,5 +263,4 @@ class MyBannerWidget extends StatelessWidget {
       throw 'Could not launch $url';
     }
   }
-
 }

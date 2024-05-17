@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'myfirebase.dart';
+import 'nativeCommunication.dart'; // FirebaseService 클래스 추가
 
 class BlockPhoneNumberPage extends StatefulWidget {
   @override
@@ -9,48 +9,29 @@ class BlockPhoneNumberPage extends StatefulWidget {
 }
 
 class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static const platform = MethodChannel('com.yourapp/block_call');
-
-  User? _user;
+  final FirebaseService _firebaseService = FirebaseService(); // FirebaseService 인스턴스 생성
   TextEditingController _phoneNumberController = TextEditingController();
   List<String> _blockedNumbers = [];
 
   @override
   void initState() {
     super.initState();
-    _getCurrentUser();
+    _initializePage();
   }
 
-  Future<void> _getCurrentUser() async {
-    _user = _auth.currentUser;
-    if (_user != null) {
-      _loadBlockedNumbers();
-      _updateBlockedNumbersOnNative();
-    }
-  }
-
-  Future<void> _loadBlockedNumbers() async {
-    if (_user == null) return;
-
+  Future<void> _initializePage() async {
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(_user!.uid).get();
-      if (userDoc.exists) {
-        List<dynamic> blockedNumbers = userDoc.get('blockedNumbers') ?? [];
-        setState(() {
-          _blockedNumbers = blockedNumbers.cast<String>();
-        });
-        _updateBlockedNumbersOnNative();
-      }
+      List<String> blockedNumbers = await _firebaseService.loadBlockedNumbers();
+      setState(() {
+        _blockedNumbers = blockedNumbers;
+      });
+      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
     } catch (e) {
       print('Error loading blocked numbers: $e');
     }
   }
 
   Future<void> _blockPhoneNumber(String phoneNumber) async {
-    if (_user == null) return;
-
     if (_blockedNumbers.contains(phoneNumber)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$phoneNumber is already blocked.')),
@@ -59,59 +40,40 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
     }
 
     try {
-      await _firestore.collection('users').doc(_user!.uid).set({
-        'blockedNumbers': FieldValue.arrayUnion([phoneNumber])
-      }, SetOptions(merge: true));
-
+      await _firebaseService.blockPhoneNumber(phoneNumber);
       setState(() {
         _blockedNumbers.add(phoneNumber);
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$phoneNumber has been blocked.')),
       );
-
-      _updateBlockedNumbersOnNative();
-    } catch (e) {
-      print('Error blocking phone number: $e');
+      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
+    } catch (error) {
+      print('Error blocking phone number: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to block phone number.')),
       );
     }
   }
 
-  Future<void> _updateBlockedNumbersOnNative() async {
-    try {
-      await platform.invokeMethod('updateBlockedNumbers', _blockedNumbers);
-      print("네이티브 쪽으로 차단된번호 전달: $_blockedNumbers");
-    } on PlatformException catch (e) {
-      print("Failed to update blocked numbers on native: '${e.message}'.");
-    }
-  }
   Future<void> _removeBlockedPhoneNumber(int index) async {
-    if (_user == null) return;
-
     String phoneNumber = _blockedNumbers[index];
     try {
-      await _firestore.collection('users').doc(_user!.uid).update({
-        'blockedNumbers': FieldValue.arrayRemove([phoneNumber])
+      await _firebaseService.removeBlockedPhoneNumber(phoneNumber);
+      setState(() {
+        _blockedNumbers.removeAt(index);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$phoneNumber has been unblocked.')),
       );
-      setState(() {
-        _blockedNumbers.removeAt(index);
-      });
-    } catch (e) {
-      print('Error unblocking phone number: $e');
+      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
+    } catch (error) {
+      print('Error unblocking phone number: $error');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to unblock phone number.')),
       );
     }
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +106,8 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
             Text(
               '차단된 전화번호 목록',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),Text(
+            ),
+            Text(
               '옆으로 밀어서 삭제',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
@@ -170,8 +133,6 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
                     onDismissed: (direction) async {
                       await _removeBlockedPhoneNumber(index);
                     },
-
-
                     child: ListTile(
                       title: Text(_blockedNumbers[index]),
                       leading: Icon(Icons.block),
