@@ -21,22 +21,54 @@ class CallReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
-            val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
-            if (state == TelephonyManager.EXTRA_STATE_RINGING) {
-                // 전화가 왔을 때
-                val phoneNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
-                Log.d(TAG, "Incoming call: $phoneNumber")
+        when (intent.action) {
+            TelephonyManager.ACTION_PHONE_STATE_CHANGED -> {
+                val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
+                if (state == TelephonyManager.EXTRA_STATE_RINGING) {
+                    // 전화가 왔을 때
+                    val phoneNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+                    Log.d(TAG, "Incoming call: $phoneNumber")
 
-                // 차단된 번호와 비교 후 거절 여부 결정
-                if (phoneNumber != null && blockedNumbers.contains(phoneNumber)) {
-                    Log.d(TAG, "Blocking call from $phoneNumber")
-                    rejectCall(context)
+                    // 차단된 번호와 비교 후 거절 여부 결정
+                    if (phoneNumber != null && blockedNumbers.contains(phoneNumber)) {
+                        Log.d(TAG, "Blocking call from $phoneNumber")
+                        rejectCall(context)
+                    }
+                }
+            }
+            "android.provider.Telephony.SMS_RECEIVED" -> {
+                // 문자 메시지가 도착했을 때
+                val bundle = intent.extras
+                if (bundle != null) {
+                    val pdus = bundle.get("pdus") as Array<Any>
+                    for (pdu in pdus) {
+                        val smsMessage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            SmsMessage.createFromPdu(pdu as ByteArray, bundle.getString("format"))
+                        } else {
+                            SmsMessage.createFromPdu(pdu as ByteArray)
+                        }
+                        val messageBody = smsMessage.messageBody
+                        val sender = smsMessage.originatingAddress
+                        Log.d(TAG, "Incoming SMS: $messageBody from $sender")
+
+                        // 차단된 번호인 경우 메시지를 무시
+                        if (sender != null && blockedNumbers.contains(sender)) {
+                            Log.d(TAG, "Ignoring SMS from blocked number: $sender")
+                            // 문자 메시지를 브로드캐스트 중지
+                            abortBroadcast()
+                            return  // 메시지를 무시하고 메소드 종료
+                        }
+
+                        // 차단된 번호가 아닌 경우에만 처리
+                        // 문자 메시지를 Flutter 앱으로 브로드캐스트
+                        val intent = Intent("com.example.hackdol1_1.SMS_RECEIVED")
+                        intent.putExtra("message", messageBody)
+                        context.sendBroadcast(intent)
+                    }
                 }
             }
         }
     }
-
     // 전화 거절 기능
     private fun rejectCall(context: Context) {
         val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager

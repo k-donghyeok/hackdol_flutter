@@ -18,6 +18,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.yourapp/block_call"
+    private val SMS_CHANNEL = "com.yourapp/sms_received"
     private val blockedNumbers: MutableList<String> = mutableListOf()
     private val callReceiver = CallReceiver()
 
@@ -35,6 +36,16 @@ class MainActivity : FlutterActivity() {
 
                 callReceiver.setBlockedNumbers(blockedNumbers)  // Update CallReceiver with the new blocked numbers
                 result.success(null)
+            } else {
+                result.notImplemented()
+            }
+        }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SMS_CHANNEL).setMethodCallHandler { call, result ->
+            // 문자 메시지 관련 이벤트 처리
+            if (call.method == "getMessage") {
+                // 여기서 문자 메시지를 가져와서 Flutter로 전송
+                val message = getMessage() // 메시지를 가져오는 함수 호출
+                result.success(message)
             } else {
                 result.notImplemented()
             }
@@ -61,6 +72,10 @@ class MainActivity : FlutterActivity() {
         registerReceiver(callReceiver, filter)
     }
 
+    private fun getMessage(): String {
+        // 여기에 문자 메시지를 가져오는 코드 작성
+        return "This is a sample SMS message."
+    }
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(callReceiver)

@@ -63,7 +63,7 @@ class MainScreen extends StatelessWidget {
               title: Text('스팸'),
               children: [
                 ListTile(
-                  title: Text('차단 번호'),
+                  title: Text('번호 차단'),
                   onTap: () {
                     Navigator.push( // 네비게이션을 통해 다른 화면으로 이동
                       context,
@@ -72,9 +72,18 @@ class MainScreen extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  title: Text('차단 문구'),
+                  title: Text('문구 차단'),
                   onTap: () {
                     _launchURL('https://www.example.com'); // 예시 URL
+                  },
+                ),
+                ListTile(
+                  title: Text('차단된 메시지'),
+                  onTap: () {
+                    Navigator.push( // 네비게이션을 통해 다른 화면으로 이동
+                      context,
+                      MaterialPageRoute(builder: (context) => BlockPhoneNumberPage()),
+                    );
                   },
                 ),
               ],
