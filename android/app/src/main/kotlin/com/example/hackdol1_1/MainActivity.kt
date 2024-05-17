@@ -26,6 +26,10 @@ class MainActivity : FlutterActivity() {
                 val numbers = call.arguments<List<String>>()!!
                 blockedNumbers.clear()
                 blockedNumbers.addAll(numbers)
+
+                // Log the blocked numbers to verify they are received correctly
+                Log.d("MainActivity", "Blocked numbers updated: $blockedNumbers")
+
                 callReceiver.setBlockedNumbers(blockedNumbers)  // Update CallReceiver with the new blocked numbers
                 result.success(null)
             } else {
