@@ -88,6 +88,30 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
       print("Failed to update blocked numbers on native: '${e.message}'.");
     }
   }
+  Future<void> _removeBlockedPhoneNumber(int index) async {
+    if (_user == null) return;
+
+    String phoneNumber = _blockedNumbers[index];
+    try {
+      await _firestore.collection('users').doc(_user!.uid).update({
+        'blockedNumbers': FieldValue.arrayRemove([phoneNumber])
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$phoneNumber has been unblocked.')),
+      );
+      setState(() {
+        _blockedNumbers.removeAt(index);
+      });
+    } catch (e) {
+      print('Error unblocking phone number: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to unblock phone number.')),
+      );
+    }
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -120,14 +144,38 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
             Text(
               '차단된 전화번호 목록',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),Text(
+              '옆으로 밀어서 삭제',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
             Expanded(
               child: ListView.builder(
                 itemCount: _blockedNumbers.length,
                 itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_blockedNumbers[index]),
-                    leading: Icon(Icons.block),
+                  return Dismissible(
+                    key: Key(_blockedNumbers[index]),
+                    background: Container(
+                      color: Colors.red,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: Icon(Icons.delete, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (direction) async {
+                      await _removeBlockedPhoneNumber(index);
+                    },
+
+
+                    child: ListTile(
+                      title: Text(_blockedNumbers[index]),
+                      leading: Icon(Icons.block),
+                    ),
                   );
                 },
               ),
