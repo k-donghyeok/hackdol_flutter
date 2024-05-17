@@ -83,6 +83,7 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
   Future<void> _updateBlockedNumbersOnNative() async {
     try {
       await platform.invokeMethod('updateBlockedNumbers', _blockedNumbers);
+      print("네이티브 쪽으로 차단된번호 전달: $_blockedNumbers");
     } on PlatformException catch (e) {
       print("Failed to update blocked numbers on native: '${e.message}'.");
     }

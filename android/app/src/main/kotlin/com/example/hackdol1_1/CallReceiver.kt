@@ -1,13 +1,13 @@
 package com.example.hackdol1_1
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
 import android.util.Log
 import java.lang.reflect.Method
-import android.content.BroadcastReceiver
-import android.content.Intent
 
 class CallReceiver : BroadcastReceiver() {
     private val TAG = "CallReceiver"
@@ -44,11 +44,11 @@ class CallReceiver : BroadcastReceiver() {
         val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 11 이상에서는 TelecomManager를 사용하여 전화 거절
+            // Android 10 이상에서는 TelecomManager를 사용하여 전화 거절
             telecomManager.endCall()
 
         } else {
-            // Android 10 이하에서는 ITelephony를 사용하여 전화 거절
+            // Android 9 이하에서는 ITelephony를 사용하여 전화 거절
             try {
                 val telephonyServiceClass = Class.forName(telephonyManager.javaClass.name)
                 val methodEndCall = telephonyServiceClass.getDeclaredMethod("endCall")
