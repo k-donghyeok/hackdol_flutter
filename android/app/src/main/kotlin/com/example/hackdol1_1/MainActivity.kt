@@ -78,7 +78,7 @@ class MainActivity : FlutterActivity() {
     private fun showNotificationListenerDialog() {
         AlertDialog.Builder(this)
                 .setTitle("Notification Listener Service")
-                .setMessage("To block SMS notifications from blocked numbers, please enable the Notification Listener Service.")
+                .setMessage("차단된 번호의 SMS 알림을 차단하려면 알림 수신 서비스를 활성화하세요.")
                 .setPositiveButton("Enable") { _, _ ->
                     startActivityForResult(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS), 1001)
                 }
