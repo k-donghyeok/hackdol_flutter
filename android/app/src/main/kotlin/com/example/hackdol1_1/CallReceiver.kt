@@ -56,8 +56,14 @@ class CallReceiver : BroadcastReceiver() {
                         val sender = smsMessage.originatingAddress
                         Log.d(TAG, "Incoming SMS: $messageBody from $sender")
                         Log.d(TAG, "blocknumbers: $blockedNumbers")
-                        // 차단된 번호가 아닌 경우에만 처리
-                        if (sender != null && !blockedNumbers.contains(sender)) {
+                        // 차단된 번호인 경우 메시지를 무시
+                        if (sender != null && blockedNumbers.contains(sender)) {
+                            Log.d(TAG, "Ignoring SMS from blocked number: $sender")
+                            // 문자 메시지를 브로드캐스트 중지
+                            abortBroadcast()
+                            return  // 메시지를 무시하고 메소드 종료
+                        } else if (sender != null) {
+                            // 차단된 번호가 아닌 경우에만 처리
                             val intent = Intent("com.example.hackdol1_1.SMS_RECEIVED")
                             intent.putExtra("message", messageBody)
                             context.sendBroadcast(intent)

@@ -11,17 +11,19 @@ class SMSNotificationListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
 
+        // 메시지 앱의 알림인지 확인
         if (sbn.packageName == "com.android.messaging" || sbn.packageName == "com.google.android.apps.messaging") {
             val extras = sbn.notification.extras
-            val title = extras.getString(Notification.EXTRA_TITLE)
+            val sender = extras.getString(Notification.EXTRA_TITLE)
             val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
 
-            Log.d(TAG, "Notification posted: $title - $text")
+            Log.d(TAG, "Notification posted: $sender - $text")
 
-            if (title != null && text != null) {
+            if (sender != null) {
                 val blockedNumbers = BlockedNumbersManager.loadBlockedNumbers(this)
-                if (blockedNumbers.any { text.contains(it) }) {
-                    Log.d(TAG, "Ignoring notification from blocked sender: $title")
+                // 차단된 번호에서 온 알림인지 확인
+                if (blockedNumbers.contains(sender)) {
+                    Log.d(TAG, "Ignoring notification from blocked sender: $sender")
                     cancelNotification(sbn.key)
                 }
             }
