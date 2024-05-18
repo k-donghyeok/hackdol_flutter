@@ -97,7 +97,7 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                String phoneNumber = _phoneNumberController.text;
+                String phoneNumber =_phoneNumberController.text;
                 _blockPhoneNumber(phoneNumber);
               },
               child: Text('전화번호 차단하기'),

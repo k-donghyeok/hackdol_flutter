@@ -19,25 +19,24 @@ class SMSNotificationListenerService : NotificationListenerService() {
 
         // 메시지 앱의 알림인지 확인
         val extras = sbn.notification.extras
-        val contentTitle = extras.getString(Notification.EXTRA_TITLE)
-        val contentText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
-        Log.d(TAG, "Notification details - contentTitle: $contentTitle, contentText: $contentText")
-        if ((contentTitle != null && contentTitle.contains("SMS")) || (contentText != null && contentText.contains("SMS"))) {
-            // 메시지 앱의 알림이라면 처리
-            val sender = extras.getString(Notification.EXTRA_TITLE)
-            val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+        val sender = extras.getString(Notification.EXTRA_TITLE)
+        val message = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+        val senderNumber = sender?.replace(Regex("[^0-9]"), "")
 
-            Log.d(TAG, "Notification details - Sender: $sender, Text: $text")
+        Log.d(TAG, "Notification details senderNumber: $senderNumber - Sender: $sender, Message: $message")
 
-            if (sender != null) {
-                val blockedNumbers = BlockedNumbersManager.loadBlockedNumbers(this)
-                // 차단된 번호에서 온 알림인지 확인
-                if (blockedNumbers.contains(sender)) {
-                    Log.d(TAG, "Ignoring notification from blocked sender: $sender")
-                    cancelNotification(sbn.key)
-                }
+        if (sender != null) {
+            val blockedNumbers = BlockedNumbersManager.loadBlockedNumbers(this).map { it.trim() }
+
+            // 차단된 번호에서 온 알림인지 확인
+            Log.d(TAG, "blockedNumbers: $blockedNumbers")
+            if (blockedNumbers.contains(senderNumber)) {
+                Log.d(TAG, "Ignoring notification from blocked sender: $senderNumber")
+                cancelNotification(sbn.key)
+                return
             }
         }
     }
+
 
 }
