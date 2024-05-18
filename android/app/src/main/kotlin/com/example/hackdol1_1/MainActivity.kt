@@ -1,11 +1,14 @@
 package com.example.hackdol1_1
 
 import android.Manifest
+import android.app.AlertDialog
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
-import android.telecom.TelecomManager
+import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.annotation.NonNull
@@ -25,10 +28,9 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "updateBlockedNumbers") {
                 val numbers = call.arguments<List<String>>()!!
-                BlockedNumbersManager.saveBlockedNumbers(this, numbers)  // Save the blocked numbers in SharedPreferences
-                callReceiver.setBlockedNumbers(BlockedNumbersManager.loadBlockedNumbers(this))  // Update CallReceiver with the new blocked numbers
+                BlockedNumbersManager.saveBlockedNumbers(this, numbers)
+                callReceiver.setBlockedNumbers(BlockedNumbersManager.loadBlockedNumbers(this))
 
-                // Log the blocked numbers to verify they are received correctly
                 Log.d("MainActivity", "Blocked numbers updated: $numbers")
 
                 result.success(null)
@@ -36,42 +38,59 @@ class MainActivity : FlutterActivity() {
                 result.notImplemented()
             }
         }
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SMS_CHANNEL).setMethodCallHandler { call, result ->
-            // 문자 메시지 관련 이벤트 처리
-            if (call.method == "getMessage") {
-                // 여기서 문자 메시지를 가져와서 Flutter로 전송
-                val message = getMessage() // 메시지를 가져오는 함수 호출
-                result.success(message)
-            } else {
-                result.notImplemented()
-            }
-        }
 
-        // Check and request necessary permissions
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.MODIFY_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ANSWER_PHONE_CALLS) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(
-                    Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.READ_CALL_LOG,
-                    Manifest.permission.CALL_PHONE,
-                    Manifest.permission.MODIFY_PHONE_STATE,
-                    Manifest.permission.ANSWER_PHONE_CALLS,
-                    Manifest.permission.RECEIVE_SMS
-            ), 1)
-        }
+        checkAndRequestPermissions()
 
-        // Register the CallReceiver to listen to phone state changes
         val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
+        filter.addAction("android.provider.Telephony.SMS_RECEIVED")
         registerReceiver(callReceiver, filter)
+
+        if (!isNotificationServiceEnabled()) {
+            showNotificationListenerDialog()
+        }
     }
 
-    private fun getMessage(): String {
-        // 여기에 문자 메시지를 가져오는 코드 작성
-        return "This is a sample SMS message."
+    private fun checkAndRequestPermissions() {
+        val permissions = arrayOf(
+                Manifest.permission.READ_PHONE_STATE,
+                Manifest.permission.READ_CALL_LOG,
+                Manifest.permission.CALL_PHONE,
+                Manifest.permission.MODIFY_PHONE_STATE,
+                Manifest.permission.ANSWER_PHONE_CALLS,
+                Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE
+        )
+
+        val permissionsToRequest = permissions.filter {
+            ActivityCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionsToRequest.toTypedArray(), 1)
+        }
+    }
+
+    private fun isNotificationServiceEnabled(): Boolean {
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        return flat != null && flat.contains(ComponentName(this, SMSNotificationListenerService::class.java.name).flattenToString())
+    }
+
+    private fun showNotificationListenerDialog() {
+        AlertDialog.Builder(this)
+                .setTitle("Notification Listener Service")
+                .setMessage("To block SMS notifications from blocked numbers, please enable the Notification Listener Service.")
+                .setPositiveButton("Enable") { _, _ ->
+                    startActivityForResult(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS), 1001)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 1001 && !isNotificationServiceEnabled()) {
+            showNotificationListenerDialog()
+        }
     }
 
     override fun onDestroy() {
