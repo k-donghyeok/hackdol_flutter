@@ -15,7 +15,7 @@ class SMSNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
-
+        Log.d(TAG, "Notification posted111111: $sender - $text")
         // 메시지 앱의 알림인지 확인
         if (sbn.packageName == "com.android.messaging" || sbn.packageName == "com.google.android.apps.messaging") {
             val extras = sbn.notification.extras

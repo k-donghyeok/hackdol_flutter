@@ -58,7 +58,7 @@ class MainActivity : FlutterActivity() {
                 Manifest.permission.MODIFY_PHONE_STATE,
                 Manifest.permission.ANSWER_PHONE_CALLS,
                 Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE
+
         )
 
         val permissionsToRequest = permissions.filter {
