@@ -5,9 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.telecom.TelecomManager
+import android.telephony.SmsMessage
 import android.telephony.TelephonyManager
 import android.util.Log
-import android.telephony.SmsMessage
 
 class CallReceiver : BroadcastReceiver() {
     private val TAG = "CallReceiver"
@@ -22,6 +22,10 @@ class CallReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        // Broadcast를 받을 때마다 차단된 번호를 로드
+        blockedNumbers.clear()
+        blockedNumbers.addAll(BlockedNumbersManager.loadBlockedNumbers(context))
+
         when (intent.action) {
             TelephonyManager.ACTION_PHONE_STATE_CHANGED -> {
                 val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
@@ -29,7 +33,7 @@ class CallReceiver : BroadcastReceiver() {
                     // 전화가 왔을 때
                     val phoneNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
                     Log.d(TAG, "Incoming call: $phoneNumber")
-
+                    Log.d(TAG, "blocknumbers: $blockedNumbers")
                     // 차단된 번호와 비교 후 거절 여부 결정
                     if (phoneNumber != null && blockedNumbers.contains(phoneNumber)) {
                         Log.d(TAG, "Blocking call from $phoneNumber")
@@ -51,7 +55,7 @@ class CallReceiver : BroadcastReceiver() {
                         val messageBody = smsMessage.messageBody
                         val sender = smsMessage.originatingAddress
                         Log.d(TAG, "Incoming SMS: $messageBody from $sender")
-
+                        Log.d(TAG, "blocknumbers: $blockedNumbers")
                         // 차단된 번호인 경우 메시지를 무시
                         if (sender != null && blockedNumbers.contains(sender)) {
                             Log.d(TAG, "Ignoring SMS from blocked number: $sender")
@@ -70,6 +74,7 @@ class CallReceiver : BroadcastReceiver() {
             }
         }
     }
+
     // 전화 거절 기능
     private fun rejectCall(context: Context) {
         val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager

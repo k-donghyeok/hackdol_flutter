@@ -1,9 +1,7 @@
 package com.example.hackdol1_1
 
 import android.Manifest
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
@@ -19,7 +17,6 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.yourapp/block_call"
     private val SMS_CHANNEL = "com.yourapp/sms_received"
-    private val blockedNumbers: MutableList<String> = mutableListOf()
     private val callReceiver = CallReceiver()
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -28,13 +25,12 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "updateBlockedNumbers") {
                 val numbers = call.arguments<List<String>>()!!
-                blockedNumbers.clear()
-                blockedNumbers.addAll(numbers)
+                BlockedNumbersManager.saveBlockedNumbers(this, numbers)  // Save the blocked numbers in SharedPreferences
+                callReceiver.setBlockedNumbers(BlockedNumbersManager.loadBlockedNumbers(this))  // Update CallReceiver with the new blocked numbers
 
                 // Log the blocked numbers to verify they are received correctly
-                Log.d("MainActivity", "Blocked numbers updated: $blockedNumbers")
+                Log.d("MainActivity", "Blocked numbers updated: $numbers")
 
-                callReceiver.setBlockedNumbers(blockedNumbers)  // Update CallReceiver with the new blocked numbers
                 result.success(null)
             } else {
                 result.notImplemented()
@@ -68,8 +64,6 @@ class MainActivity : FlutterActivity() {
             ), 1)
         }
 
-
-
         // Register the CallReceiver to listen to phone state changes
         val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
         registerReceiver(callReceiver, filter)
@@ -79,6 +73,7 @@ class MainActivity : FlutterActivity() {
         // 여기에 문자 메시지를 가져오는 코드 작성
         return "This is a sample SMS message."
     }
+
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(callReceiver)
