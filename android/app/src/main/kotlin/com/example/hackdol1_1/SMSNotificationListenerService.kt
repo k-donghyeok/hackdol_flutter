@@ -8,6 +8,11 @@ import android.util.Log
 class SMSNotificationListenerService : NotificationListenerService() {
     private val TAG = "SMSNotificationListener"
 
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        Log.d(TAG, "Notification listener connected")
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
 
