@@ -21,7 +21,7 @@ class SMSNotificationListenerService : NotificationListenerService() {
         val extras = sbn.notification.extras
         val contentTitle = extras.getString(Notification.EXTRA_TITLE)
         val contentText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
-
+        Log.d(TAG, "Notification details - contentTitle: $contentTitle, contentText: $contentText")
         if ((contentTitle != null && contentTitle.contains("SMS")) || (contentText != null && contentText.contains("SMS"))) {
             // 메시지 앱의 알림이라면 처리
             val sender = extras.getString(Notification.EXTRA_TITLE)
