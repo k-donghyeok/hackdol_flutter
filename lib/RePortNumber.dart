@@ -25,7 +25,7 @@ class _ReportNumberScreenState extends State<ReportNumberScreen> {
       final user = _auth.currentUser;
 
       if (user != null) {
-        final displayName = await _firebaseService.getUserDisplayName(user.uid);
+        final displayName = await _firebaseService.getUserName();
 
         final reportRef = FirebaseFirestore.instance.collection('reports').doc(number);
 
