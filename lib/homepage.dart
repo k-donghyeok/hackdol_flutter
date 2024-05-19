@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore 임포트 추가
 import 'package:hackdol1_1/block_tell.dart';
-
 import 'FreeBoardPage.dart';
+import 'chatbot.dart';
+import 'homepage.dart'; // homepage.dart 파일 임포트 추가
+
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key});
@@ -67,7 +71,8 @@ class MainScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.push( // 네비게이션을 통해 다른 화면으로 이동
                       context,
-                      MaterialPageRoute(builder: (context) => BlockPhoneNumberPage()),
+                      MaterialPageRoute(
+                          builder: (context) => BlockPhoneNumberPage()),
                     );
                   },
                 ),
@@ -92,11 +97,15 @@ class MainScreen extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  title: Text('Q&A'),
+                  title: Text('Chatbot'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatBotPage()),
+                    );
                   },
                 ),
+
               ],
             ),
             ExpansionTile(
@@ -105,13 +114,13 @@ class MainScreen extends StatelessWidget {
                 ListTile(
                   title: Text('내 정보 확인'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    _showUserInfoDialog(context); // 내 정보 확인 다이얼로그 표시
                   },
                 ),
                 ListTile(
                   title: Text('로그아웃'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    _showLogoutDialog(context); // 로그아웃 다이얼로그 표시
                   },
                 ),
               ],
@@ -136,17 +145,21 @@ class MainScreen extends StatelessWidget {
           Expanded(
             child: DataTable(
               columns: [
-                DataColumn(label: Text('등수', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('전화번호', style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(label: Text('신고수', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text(
+                    '등수', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text(
+                    '전화번호', style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(label: Text(
+                    '신고수', style: TextStyle(fontWeight: FontWeight.bold))),
               ],
-              rows: postList.map((data) => DataRow(
-                  cells: [
-                    DataCell(Text(data['rank'].toString())),
-                    DataCell(Text(data['title'].toString())),
-                    DataCell(Text(data['reportCount'].toString())),
-                  ]
-              )).toList(),
+              rows: postList.map((data) =>
+                  DataRow(
+                      cells: [
+                        DataCell(Text(data['rank'].toString())),
+                        DataCell(Text(data['title'].toString())),
+                        DataCell(Text(data['reportCount'].toString())),
+                      ]
+                  )).toList(),
             ),
           ),
           SizedBox(height: 20),
@@ -180,6 +193,96 @@ class MainScreen extends StatelessWidget {
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("로그아웃"),
+          content: Text("로그아웃 하시겠습니까?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+              },
+              child: Text("취소"),
+              style: TextButton.styleFrom(
+                minimumSize: Size(40, 30), // 버튼 크기 조정
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                FirebaseAuth.instance.signOut(); // Firebase 로그아웃 처리
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                    "/login", (route) => false); // 로그인 화면으로 이동하면서 이전 경로 스택 제거
+              },
+              child: Text("예"),
+              style: TextButton.styleFrom(
+                minimumSize: Size(40, 30), // 버튼 크기 조정
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showUserInfoDialog(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Firestore에서 사용자 정보 가져오기
+      FirebaseFirestore.instance.collection('users').doc(user.uid).get().then((DocumentSnapshot documentSnapshot) {
+        if (documentSnapshot.exists) {
+          Map<String, dynamic> data = documentSnapshot.data() as Map<String, dynamic>;
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text("내 정보 확인"),
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (data["name"] != null) _buildUserInfoRow("이름", data["name"]),
+                    if (data["phone"] != null) _buildUserInfoRow("전화번호", data["phone"]),
+                    if (data["email"] != null) _buildUserInfoRow("이메일", data["email"]),
+                    if (data["gender"] != null) _buildUserInfoRow("성별", data["gender"]),
+                    _buildUserInfoRow("비밀번호", "********"), // 보안 상 비밀번호는 별표로 표시
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // 다이얼로그 닫기
+                    },
+                    child: Text("확인"),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      });
+    } else {
+      // 현재 사용자가 null인 경우 처리할 코드 추가
+    }
+  }
+
+  Widget _buildUserInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Text(
+            "$label: ",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(value ?? ""), // null 체크 후 값을 출력하거나 빈 문자열 출력
+        ],
+      ),
+    );
   }
 }
 
@@ -226,5 +329,4 @@ class MyBannerWidget extends StatelessWidget {
       throw 'Could not launch $url';
     }
   }
-
 }

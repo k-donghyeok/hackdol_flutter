@@ -1,4 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: FreeBoardPage(),
+    );
+  }
+}
 
 class FreeBoardPage extends StatefulWidget {
   @override
@@ -6,66 +25,36 @@ class FreeBoardPage extends StatefulWidget {
 }
 
 class _FreeBoardPageState extends State<FreeBoardPage> {
-  List<Post> posts = []; // 게시글을 저장할 리스트
+  List<Post> posts = [];
+
+
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('자유게시판'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            SizedBox(height: 10), // 조금의 여백을 추가합니다.
-            // 자유게시판 사용 방법 추가
-            Text(
-              '공지사항',
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10), // 조금의 여백을 추가합니다.
-            ElevatedButton(
-              onPressed: () {
-                _showUsageGuide(context); // 사용 방법을 표시하는 다이얼로그를 표시합니다.
-              },
-              child: Text('자유게시판 사용 방법'),
-            ),
-            SizedBox(height: 20), // 여백 추가
-
-            // 저장된 게시글 제목들을 표시
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: posts.map((post) {
-                return GestureDetector(
-                  onTap: () {
-                    _openPostDetailPage(context, post); // 게시글 상세 화면으로 이동합니다.
-                  },
-                  child: Text(post.title),
-                );
-              }).toList(),
-            ),
-
-            SizedBox(height: 20), // 여백 추가
-
-            // 글쓰기 버튼
-            Padding(
-              padding: EdgeInsets.only(bottom: 20), // 아래쪽 여백 추가
-              child: ElevatedButton(
-                onPressed: () {
-                  _openWritePostPage(context); // 글쓰기 페이지로 이동합니다.
-                },
-                child: Text('글쓰기'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    _fetchPosts();
   }
 
-  // 사용 방법을 표시하는 다이얼로그를 표시하는 함수
+  void _fetchPosts() async {
+    QuerySnapshot querySnapshot =
+    await FirebaseFirestore.instance.collection('posts').get();
+    setState(() {
+      posts = querySnapshot.docs.map((doc) {
+        return Post(
+          doc.id,
+          doc['title'],
+          doc['content'],
+          doc['author'],
+          doc['createdAt'].toDate(),
+        );
+      }).toList();
+    });
+  }
+
+  void refreshPosts() {
+    _fetchPosts();
+  }
+
   void _showUsageGuide(BuildContext context) {
     showDialog(
       context: context,
@@ -86,7 +75,7 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // 다이얼로그를 닫습니다.
+                Navigator.of(context).pop();
               },
               child: Text('닫기'),
             ),
@@ -96,37 +85,105 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
     );
   }
 
-  // 글쓰기 페이지로 이동하는 함수
   void _openWritePostPage(BuildContext context) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => WritePostPage(), // 글쓰기 페이지로 이동합니다.
+        builder: (context) => WritePostPage(),
       ),
     );
 
     if (result != null) {
-      setState(() {
-        posts.add(result); // 작성한 게시글을 리스트에 추가합니다.
-      });
+      refreshPosts();
     }
   }
 
-  // 게시글 상세 화면으로 이동하는 함수
-  void _openPostDetailPage(BuildContext context, Post post) {
-    Navigator.push(
+  void _openPostDetailPage(BuildContext context, Post post) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PostDetailPage(post), // 게시글 상세 화면으로 이동합니다.
+        builder: (context) => PostDetailPage(post),
+      ),
+    );
+
+    if (result != null && result == true) {
+      refreshPosts();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('자유게시판'),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            SizedBox(height: 10),
+            Text(
+              '공지사항',
+              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                _showUsageGuide(context);
+              },
+              child: Text('자유게시판 사용 방법'),
+            ),
+            SizedBox(height: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: posts.map((post) {
+                return GestureDetector(
+                  onTap: () {
+                    _openPostDetailPage(context, post);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(post.title),
+                      SizedBox(height: 5),
+                      Row(
+                        children: <Widget>[
+                          Text('글쓴 사람: ${post.author}'),
+                          Spacer(),
+                          Text(
+                            '올린 날짜: ${DateFormat('yyyy-MM-dd').format(post.createdAt)}',
+                          ),
+                        ],
+                      ),
+                      Text(post.content),
+                      Divider(),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 20),
+            Padding(
+              padding: EdgeInsets.only(bottom: 20),
+              child: ElevatedButton(
+                onPressed: () {
+                  _openWritePostPage(context);
+                },
+                child: Text('글쓰기'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// 글쓰기 페이지 위젯
 class WritePostPage extends StatelessWidget {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
+  final TextEditingController _authorController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -139,34 +196,31 @@ class WritePostPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // 제목 입력 필드
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
                 labelText: '제목',
               ),
             ),
-            SizedBox(height: 10), // 조금의 여백을 추가합니다.
-            // 내용 입력 필드
+            SizedBox(height: 10),
             TextField(
               controller: _contentController,
               decoration: InputDecoration(
                 labelText: '내용',
               ),
-              maxLines: 5, // 여러 줄 입력 가능하도록 설정합니다.
+              maxLines: 5,
             ),
-            SizedBox(height: 20), // 여백 추가
-            // 게시 버튼
+            SizedBox(height: 10),
+            TextField(
+              controller: _authorController,
+              decoration: InputDecoration(
+                labelText: '글쓴이',
+              ),
+            ),
+            SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // 작성한 글을 저장하고 글쓰기 페이지를 닫습니다.
-                Navigator.pop(
-                  context,
-                  Post(
-                    _titleController.text,
-                    _contentController.text,
-                  ),
-                );
+                _uploadPost(context);
               },
               child: Text('게시'),
             ),
@@ -175,17 +229,37 @@ class WritePostPage extends StatelessWidget {
       ),
     );
   }
+
+  void _uploadPost(BuildContext context) async {
+    if (_titleController.text.isEmpty ||
+        _contentController.text.isEmpty ||
+        _authorController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('제목, 내용, 작성자를 모두 입력해주세요.')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('posts').add({
+        'title': _titleController.text,
+        'content': _contentController.text,
+        'author': _authorController.text,
+        'createdAt': DateTime.now(),
+      });
+      Navigator.pop(context, true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('게시물이 성공적으로 작성되었습니다.')),
+      );
+    } catch (e) {
+      print('게시물을 업로드하는 중 오류 발생: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('게시물을 업로드하는 중 오류가 발생했습니다.')),
+      );
+    }
+  }
 }
 
-// 게시글 클래스
-class Post {
-  final String title;
-  final String content;
-
-  Post(this.title, this.content);
-}
-
-// 게시글 상세 화면 위젯
 class PostDetailPage extends StatelessWidget {
   final Post post;
 
@@ -195,18 +269,70 @@ class PostDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(post.title), // 게시글 제목을 앱 바에 표시합니다.
+        title: Text(post.title),
       ),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // 게시글 내용 표시
             Text(post.content),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                _showDeleteDialog(context);
+              },
+              child: Text('게시물 삭제'),
+            ),
           ],
         ),
       ),
     );
   }
+
+  void _showDeleteDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('게시물 삭제'),
+          content: Text('게시물을 삭제하시겠습니까?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deletePost(context);
+              },
+              child: Text('예'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deletePost(BuildContext context) async {
+    await FirebaseFirestore.instance.collection('posts').doc(post.id).delete();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('게시물이 성공적으로 삭제되었습니다.')),
+    );
+    // 게시물이 삭제된 후에 화면을 다시 갱신
+    Navigator.pop(context, true);
+    Navigator.of(context).pop();
+  }
+}
+
+class Post {
+  final String id;
+  final String title;
+  final String content;
+  final String author;
+  final DateTime createdAt;
+
+  Post(this.id, this.title, this.content, this.author, this.createdAt);
 }

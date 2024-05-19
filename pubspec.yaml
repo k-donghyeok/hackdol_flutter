@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_svg: ^2.0.10+1
+  intl: ^0.17.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -64,6 +65,8 @@ flutter:
     - assets/image/police.png
     - assets/image/kisa.png
     - assets/image/logo.svg
+    - assets/spam_classifier_model.tflite
+    # tflite 모델 파일 업로드 함.
 
   # To add assets to your application, add an assets section, like this:
   # assets:
