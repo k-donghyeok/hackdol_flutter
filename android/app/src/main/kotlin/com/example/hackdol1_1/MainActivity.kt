@@ -19,7 +19,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.yourapp/block_call"
-    private val SMS_CHANNEL = "com.yourapp/sms_received"
+    private val spam_CHANNEL = "com.example.hackdol1_1/spam_detection"
     private val callReceiver = CallReceiver()
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -34,6 +34,20 @@ class MainActivity : FlutterActivity() {
                 Log.d("MainActivity", "Blocked numbers updated: $numbers")
 
                 result.success(null)
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, spam_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "isSpam") {
+                val message = call.argument<String>("message")
+                if (message != null) {
+                    val isSpam = callReceiver.predictSpam(message)
+                    result.success(isSpam)
+                } else {
+                    result.error("INVALID_ARGUMENT", "Message is null", null)
+                }
             } else {
                 result.notImplemented()
             }
@@ -58,7 +72,6 @@ class MainActivity : FlutterActivity() {
                 Manifest.permission.MODIFY_PHONE_STATE,
                 Manifest.permission.ANSWER_PHONE_CALLS,
                 Manifest.permission.RECEIVE_SMS,
-
         )
 
         val permissionsToRequest = permissions.filter {
