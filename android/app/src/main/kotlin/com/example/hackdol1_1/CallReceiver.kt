@@ -1,6 +1,5 @@
 package com.example.hackdol1_1
 
-import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -20,11 +19,6 @@ class CallReceiver : BroadcastReceiver() {
     private lateinit var interpreter: Interpreter
     private val blockedNumbers: MutableList<String> = mutableListOf()
 
-    // 초기화 블록에서 TensorFlow Lite 모델 로드
-    init {
-        interpreter = Interpreter(loadModelFile(context))
-    }
-
     // TensorFlow Lite 모델 로드 함수
     private fun loadModelFile(context: Context): ByteBuffer {
         val assetFileDescriptor: AssetFileDescriptor = context.assets.openFd("spam_model.tflite")
@@ -38,7 +32,7 @@ class CallReceiver : BroadcastReceiver() {
     }
 
     // 스팸 예측 함수
-    private fun predictSpam(message: String): Boolean {
+    fun predictSpam(message: String): Boolean {
         val inputBuffer = ByteBuffer.allocateDirect(256 * 4).apply { order(ByteOrder.nativeOrder()) }
         // 메시지 내용을 float 배열로 변환하고 입력 버퍼에 삽입
         val floatArray = messageToFloatArray(message)
@@ -75,6 +69,11 @@ class CallReceiver : BroadcastReceiver() {
         // Broadcast를 받을 때마다 차단된 번호를 로드
         blockedNumbers.clear()
         blockedNumbers.addAll(BlockedNumbersManager.loadBlockedNumbers(context))
+
+        // TensorFlow Lite 모델 초기화
+        if (!::interpreter.isInitialized) {
+            interpreter = Interpreter(loadModelFile(context))
+        }
 
         when (intent.action) {
             TelephonyManager.ACTION_PHONE_STATE_CHANGED -> {
