@@ -13,6 +13,7 @@ import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
+import java.util.*
 
 class CallReceiver : BroadcastReceiver() {
     private val TAG = "CallReceiver"
@@ -33,30 +34,22 @@ class CallReceiver : BroadcastReceiver() {
 
     // 스팸 예측 함수
     fun predictSpam(message: String): Boolean {
-        val inputBuffer = ByteBuffer.allocateDirect(256 * 4).apply { order(ByteOrder.nativeOrder()) }
-        // 메시지 내용을 float 배열로 변환하고 입력 버퍼에 삽입
-        val floatArray = messageToFloatArray(message)
+        // 메시지의 길이를 맞추기 위해 패딩
+        val maxLen = 256
+        val inputBuffer = ByteBuffer.allocateDirect(maxLen * 4).apply { order(ByteOrder.nativeOrder()) }
+        val tokenizer = Tokenizer()
+        val sequences = tokenizer.textsToSequences(listOf(message))
+        val paddedSequences = padSequences(sequences, maxLen, padding='post')
+        val floatArray = paddedSequences[0].map { it.toFloat() }.toFloatArray()
+
         for (value in floatArray) {
             inputBuffer.putFloat(value)
         }
+
         val outputBuffer = ByteBuffer.allocateDirect(1 * 4).apply { order(ByteOrder.nativeOrder()) }
         interpreter.run(inputBuffer, outputBuffer)
         outputBuffer.rewind()
         return outputBuffer.float == 1.0f
-    }
-
-    private fun messageToFloatArray(message: String): FloatArray {
-        // 메시지를 float 배열로 변환하는 로직을 여기에 구현
-        // 예를 들어, 문자 메시지의 단어를 인덱스로 매핑하여 벡터화할 수 있습니다.
-        // 이는 모델의 학습 과정에 따라 다릅니다.
-        // 간단한 예시:
-        val floatArray = FloatArray(256) { 0.0f }
-        message.forEachIndexed { index, char ->
-            if (index < 256) {
-                floatArray[index] = char.toFloat()
-            }
-        }
-        return floatArray
     }
 
     // 차단된 전화번호 설정
