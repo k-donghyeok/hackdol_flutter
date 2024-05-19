@@ -5,6 +5,8 @@ import 'FreeBoardPage.dart';
 import 'myfirebase.dart';
 import 'nativeCommunication.dart';
 import 'RePortNumber.dart'; // report_number_screen.dart 파일을 임포트합니다.
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() {
   runApp(MyApp());
@@ -146,13 +148,13 @@ class _MainScreenState extends State<MainScreen> {
                 ListTile(
                   title: Text('내 정보 확인'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    _showUserInfoDialog(context);
                   },
                 ),
                 ListTile(
                   title: Text('로그아웃'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    _showLogoutDialog(context);
                   },
                 ),
               ],
@@ -217,10 +219,123 @@ class _MainScreenState extends State<MainScreen> {
 
   void _launchURL(String url) async {
     if (await canLaunch(url)) {
-      await launch(url);
+      await launch(url, forceSafariVC: false); // forceSafariVC false로 설정
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  void _showUserInfoDialog(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) {
+      return FutureBuilder(
+          future: _getUserInfo(),
+    builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+    // 데이터 로딩 중이면 로딩 스피너 표시
+    return Center(child: CircularProgressIndicator());
+    } else if (snapshot.hasError) {
+    // 에러가 발생하면 에러 메시지 표시
+      return AlertDialog(
+        title: Text("에러"),
+        content: Text("사용자 정보를 가져오는 중에 오류가 발생했습니다."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text("확인"),
+          ),
+        ],
+      );
+    } else {
+      // 데이터를 성공적으로 가져오면 사용자 정보 다이얼로그 표시
+      final userInfo = snapshot.data!;
+      return AlertDialog(
+        title: Text("내 정보 확인"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildUserInfoRow('이메일', userInfo['email']),
+            _buildUserInfoRow('성별', userInfo['gender']),
+            _buildUserInfoRow('이름', userInfo['name']),
+            _buildUserInfoRow('전화번호', userInfo['phoneNumber']),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text("확인"),
+          ),
+        ],
+      );
+    }
+    },
+      );
+        },
+    );
+  }
+
+  Widget _buildUserInfoRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$title: ',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> _getUserInfo() async {
+    // 여기에 사용자 정보를 가져오는 코드를 작성합니다.
+    // 예시로 Firestore에서 사용자 정보를 가져오는 코드를 작성하겠습니다.
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final userData = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
+    return userData.data() as Map<String, dynamic>;
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("로그아웃"),
+          content: Text("로그아웃 하시겠습니까?"),
+          actions: <Widget>[
+            SizedBox(
+              width: 100,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text("아니요"),
+              ),
+            ),
+            SizedBox(
+              width: 100,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pushNamedAndRemoveUntil(context, "/login", (route) => false);
+                },
+                child: Text("예"),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
