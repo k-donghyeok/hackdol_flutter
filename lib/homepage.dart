@@ -4,6 +4,7 @@ import 'package:hackdol1_1/block_tell.dart';
 import 'FreeBoardPage.dart';
 import 'myfirebase.dart';
 import 'nativeCommunication.dart';
+import 'RePortNumber.dart'; // report_number_screen.dart 파일을 임포트합니다.
 
 void main() {
   runApp(MyApp());
@@ -129,9 +130,12 @@ class _MainScreenState extends State<MainScreen> {
                   },
                 ),
                 ListTile(
-                  title: Text('Q&A'),
+                  title: Text('번호 신고'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ReportNumberScreen()), // ReportNumberScreen으로 이동
+                    );
                   },
                 ),
               ],
