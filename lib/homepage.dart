@@ -35,17 +35,13 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final postList = [
-    {"rank": 1, "title": "010-6326-2371", "reportCount": 34},
-    {"rank": 2, "title": "010-6326-2371", "reportCount": 32},
-    {"rank": 3, "title": "010-6326-2371", "reportCount": 30},
-    {"rank": 4, "title": "010-6326-2371", "reportCount": 28},
-  ];
+  List<Map<String, dynamic>> postList = [];
 
   @override
   void initState() {
     super.initState();
     _initializePage();
+    _fetchSpamReports();
   }
 
   Future<void> _initializePage() async {
@@ -58,6 +54,25 @@ class _MainScreenState extends State<MainScreen> {
       print('Error loading blocked numbers: $e');
     }
     print("MainScreen이 처음 실행되었습니다.");
+  }
+
+  Future<void> _fetchSpamReports() async {
+    FirebaseFirestore.instance.collection('reports').snapshots().listen((snapshot) {
+      List<Map<String, dynamic>> tempList = [];
+      snapshot.docs.forEach((doc) {
+        tempList.add({
+          "title": doc.id,
+          "reportCount": doc.data()['count'],
+        });
+      });
+      tempList.sort((a, b) => b['reportCount'].compareTo(a['reportCount']));
+      for (int i = 0; i < tempList.length; i++) {
+        tempList[i]['rank'] = i + 1;
+      }
+      setState(() {
+        postList = tempList.take(5).toList(); // 상위 5개 항목만 선택
+      });
+    });
   }
 
   @override
@@ -186,7 +201,17 @@ class _MainScreenState extends State<MainScreen> {
               rows: postList.map((data) => DataRow(
                 cells: [
                   DataCell(Text(data['rank'].toString())),
-                  DataCell(Text(data['title'].toString())),
+                  DataCell(
+                    Text(data['title'].toString()),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SpamReportDetailScreen(phoneNumber: data['title'].toString()),
+                        ),
+                      );
+                    },
+                  ),
                   DataCell(Text(data['reportCount'].toString())),
                 ],
               )).toList(),
@@ -227,56 +252,56 @@ class _MainScreenState extends State<MainScreen> {
 
   void _showUserInfoDialog(BuildContext context) {
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-      return FutureBuilder(
+      context: context,
+      builder: (BuildContext context) {
+        return FutureBuilder(
           future: _getUserInfo(),
-    builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-    // 데이터 로딩 중이면 로딩 스피너 표시
-    return Center(child: CircularProgressIndicator());
-    } else if (snapshot.hasError) {
-    // 에러가 발생하면 에러 메시지 표시
-      return AlertDialog(
-        title: Text("에러"),
-        content: Text("사용자 정보를 가져오는 중에 오류가 발생했습니다."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text("확인"),
-          ),
-        ],
-      );
-    } else {
-      // 데이터를 성공적으로 가져오면 사용자 정보 다이얼로그 표시
-      final userInfo = snapshot.data!;
-      return AlertDialog(
-        title: Text("내 정보 확인"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildUserInfoRow('이메일', userInfo['email']),
-            _buildUserInfoRow('성별', userInfo['gender']),
-            _buildUserInfoRow('이름', userInfo['name']),
-            _buildUserInfoRow('전화번호', userInfo['phoneNumber']),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text("확인"),
-          ),
-        ],
-      );
-    }
-    },
-      );
-        },
+          builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              // 데이터 로딩 중이면 로딩 스피너 표시
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              // 에러가 발생하면 에러 메시지 표시
+              return AlertDialog(
+                title: Text("에러"),
+                content: Text("사용자 정보를 가져오는 중에 오류가 발생했습니다."),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("확인"),
+                  ),
+                ],
+              );
+            } else {
+              // 데이터를 성공적으로 가져오면 사용자 정보 다이얼로그 표시
+              final userInfo = snapshot.data!;
+              return AlertDialog(
+                title: Text("내 정보 확인"),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildUserInfoRow('이메일', userInfo['email']),
+                    _buildUserInfoRow('성별', userInfo['gender']),
+                    _buildUserInfoRow('이름', userInfo['name']),
+                    _buildUserInfoRow('전화번호', userInfo['phoneNumber']),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("확인"),
+                  ),
+                ],
+              );
+            }
+          },
+        );
+      },
     );
   }
 
@@ -287,9 +312,10 @@ class _MainScreenState extends State<MainScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$title: ',
+            '$title:',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
+          SizedBox(width: 8),
           Expanded(
             child: Text(value),
           ),
@@ -299,8 +325,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<Map<String, dynamic>> _getUserInfo() async {
-    // 여기에 사용자 정보를 가져오는 코드를 작성합니다.
-    // 예시로 Firestore에서 사용자 정보를 가져오는 코드를 작성하겠습니다.
     final currentUser = FirebaseAuth.instance.currentUser;
     final userData = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
     return userData.data() as Map<String, dynamic>;
@@ -381,5 +405,73 @@ class MyBannerWidget extends StatelessWidget {
     } else {
       throw 'Could not launch $url';
     }
+  }
+}
+
+class SpamReportDetailScreen extends StatelessWidget {
+  final String phoneNumber;
+
+  const SpamReportDetailScreen({required this.phoneNumber, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('신고 내역'),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('detailed_reports')
+            .where('number', isEqualTo: phoneNumber)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          var documents = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: documents.length,
+            itemBuilder: (context, index) {
+              var document = documents[index];
+              return ListTile(
+                title: Text('제목: ${document['title']}'),
+                subtitle: Text('글쓴이: ${document['author']}'),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: Text('신고 내역'),
+                        content: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('신고 번호: ${document['number']}'),
+                            SizedBox(height: 8),
+                            Text('제목: ${document['title']}'),
+                            SizedBox(height: 8),
+                            Text('신고 사유: ${document['reason']}'),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Text('닫기'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
