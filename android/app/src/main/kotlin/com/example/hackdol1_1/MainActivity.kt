@@ -66,12 +66,12 @@ class MainActivity : FlutterActivity() {
 
     private fun checkAndRequestPermissions() {
         val permissions = arrayOf(
-                Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_CALL_LOG,
-                Manifest.permission.CALL_PHONE,
-                Manifest.permission.MODIFY_PHONE_STATE,
-                Manifest.permission.ANSWER_PHONE_CALLS,
-                Manifest.permission.RECEIVE_SMS,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.READ_CALL_LOG,
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.MODIFY_PHONE_STATE,
+            Manifest.permission.ANSWER_PHONE_CALLS,
+            Manifest.permission.RECEIVE_SMS
         )
 
         val permissionsToRequest = permissions.filter {
@@ -90,13 +90,13 @@ class MainActivity : FlutterActivity() {
 
     private fun showNotificationListenerDialog() {
         AlertDialog.Builder(this)
-                .setTitle("Notification Listener Service")
-                .setMessage("차단된 번호의 SMS 알림을 차단하려면 알림 수신 서비스를 활성화하세요.")
-                .setPositiveButton("Enable") { _, _ ->
-                    startActivityForResult(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS), 1001)
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
+            .setTitle("Notification Listener Service")
+            .setMessage("차단된 번호의 SMS 알림을 차단하려면 알림 수신 서비스를 활성화하세요.")
+            .setPositiveButton("Enable") { _, _ ->
+                startActivityForResult(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS), 1001)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
