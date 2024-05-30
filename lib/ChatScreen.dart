@@ -21,7 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     var response = await http.post(
-      Uri.parse('http://localhost:5005/chat'),
+      Uri.parse('http://192.168.35.62:5005/chat'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({"message": _controller.text}),
     );
