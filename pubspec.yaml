@@ -40,9 +40,12 @@ dependencies:
   firebase_core: ^2.31.0
   firebase_auth: ^4.4.0
   cloud_firestore: ^4.4.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  chewie: ^1.7.0
+  chewie_audio: ^1.5.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

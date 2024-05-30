@@ -1,24 +1,29 @@
 from flask import Flask, request, jsonify
+from transformers import BlenderbotTokenizer, BlenderbotForConditionalGeneration
+
+# BlenderBot 2.0 모델과 토크나이저 로드
+model_name = "facebook/blenderbot-400M-distill"
+tokenizer = BlenderbotTokenizer.from_pretrained(model_name)
+model = BlenderbotForConditionalGeneration.from_pretrained(model_name)
 
 app = Flask(__name__)
 
-def get_response(question):
-    question = question.lower()
-    if '안녕' in question:
-        return "안녕하세요! 무엇을 도와드릴까요?"
-    elif '날씨' in question:
-        return "오늘 날씨는 맑습니다. 외출하기 좋은 날이에요!"
-    elif '이름' in question:
-        return "저는 AI 챗봇입니다. 이름이 없어요."
-    else:
-        return "죄송해요, 이해하지 못했어요. 다른 질문을 해주시겠어요?"
+def generate_response(input_text):
+    # 입력 문장 토큰화
+    inputs = tokenizer(input_text, return_tensors="pt")
 
-@app.route('/chatbot', methods=['POST'])
-def chatbot():
-    data = request.get_json()
-    question = data['question']
-    response = get_response(question)
+    # 응답 생성
+    reply_ids = model.generate(**inputs)
+    
+    # 응답 디코딩
+    response = tokenizer.batch_decode(reply_ids, skip_special_tokens=True)[0]
+    return response
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    user_input = request.json.get('message')
+    response = generate_response(user_input)
     return jsonify({'response': response})
 
 if __name__ == '__main__':
-    app.run(host='192.168.35.3', port=5000)
+    app.run(host='127.0.0.1', port=5005)
