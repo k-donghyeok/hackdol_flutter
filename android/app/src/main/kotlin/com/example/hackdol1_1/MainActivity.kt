@@ -43,7 +43,7 @@ class MainActivity : FlutterActivity() {
             if (call.method == "isSpam") {
                 val message = call.argument<String>("message")
                 if (message != null) {
-                    val isSpam = callReceiver.predictSpam(message)
+                    val isSpam = callReceiver.predictSpam(this, message)  // 여기서 predictSpam 함수에 context 추가
                     result.success(isSpam)
                 } else {
                     result.error("INVALID_ARGUMENT", "Message is null", null)

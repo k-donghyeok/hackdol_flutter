@@ -10,33 +10,27 @@ import android.telephony.SmsMessage
 import android.telephony.TelephonyManager
 import android.util.Log
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import org.tensorflow.lite.DataType
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
-import java.util.*
 
 class CallReceiver : BroadcastReceiver() {
     private val TAG = "CallReceiver"
     private lateinit var interpreter: Interpreter
     private val blockedNumbers: MutableList<String> = mutableListOf()
-    private val maxLen = 256  // Define maxLen as a class property
+    private val maxLen = 256  // maxLen 변수를 클래스 속성으로 정의
 
     // TensorFlow Lite 모델 로드 함수
     private fun loadModelFile(context: Context): ByteBuffer {
-        val assetFileDescriptor: AssetFileDescriptor = context.assets.openFd("spam_model.tflite")
-        val inputStream = assetFileDescriptor.createInputStream()
-        val fileChannel = inputStream.channel
-        val startOffset = assetFileDescriptor.startOffset
-        val declaredLength = assetFileDescriptor.declaredLength
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength).apply {
-            order(ByteOrder.nativeOrder())
-        }
+        return FileUtil.loadMappedFile(context, "spam_model.tflite")
+        Log.d(TAG, "FileUtil.loadMappedFile $context")
     }
 
     // 메시지 전처리 함수
-    private fun preprocessMessage(message: String, maxLen: Int): FloatArray {
+    private fun preprocessMessage(message: String): FloatArray {
         val input = FloatArray(maxLen) { 0.0f }
         val words = message.split(" ")
         for (i in words.indices) {
@@ -44,18 +38,24 @@ class CallReceiver : BroadcastReceiver() {
                 input[i] = words[i].hashCode().toFloat()
             }
         }
+        Log.d(TAG, "FileUtil.loadMappedFile $input")
         return input
     }
 
     // 스팸 예측 함수
-    fun predictSpam(message: String): Boolean {
-        val inputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, maxLen), DataType.FLOAT32)
-        val inputData = preprocessMessage(message, maxLen)
-        inputBuffer.loadArray(inputData)
+    fun predictSpam(context: Context, message: String): Boolean {
+        if (!::interpreter.isInitialized) {
+            interpreter = Interpreter(loadModelFile(context))
+            Log.d(TAG, "!::interpreter.isInitialized: $interpreter")
+        }
 
+        val inputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, maxLen), DataType.FLOAT32)
+        val inputData = preprocessMessage(message)
+        inputBuffer.loadArray(inputData)
+        Log.d(TAG, "inputBuffer.loadArray: $inputData")
         val outputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, 1), DataType.FLOAT32)
         interpreter.run(inputBuffer.buffer, outputBuffer.buffer)
-
+        Log.d(TAG, "inputBuffer.loadArray: ${outputBuffer.floatArray[0]}")
         return outputBuffer.floatArray[0] > 0.5
     }
 
@@ -68,10 +68,6 @@ class CallReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         blockedNumbers.clear()
         blockedNumbers.addAll(BlockedNumbersManager.loadBlockedNumbers(context))
-
-        if (!::interpreter.isInitialized) {
-            interpreter = Interpreter(loadModelFile(context))
-        }
 
         when (intent.action) {
             TelephonyManager.ACTION_PHONE_STATE_CHANGED -> {
@@ -104,13 +100,7 @@ class CallReceiver : BroadcastReceiver() {
                             Log.d(TAG, "Ignoring SMS from blocked number: $sender")
                             abortBroadcast()
                             return
-                        } else if (sender != null) {
-                            val isSpam = predictSpam(messageBody)
-                            if (isSpam) {
-                                Log.d(TAG, "Detected spam message from: $sender")
-                                abortBroadcast()
-                                return
-                            } else {
+                        } else {
                                 val intent = Intent("com.example.hackdol1_1.SMS_RECEIVED")
                                 intent.putExtra("message", messageBody)
                                 context.sendBroadcast(intent)
@@ -139,4 +129,4 @@ class CallReceiver : BroadcastReceiver() {
             }
         }
     }
-}
+
