@@ -19,7 +19,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.yourapp/block_call"
-    private val SMS_CHANNEL = "com.yourapp/sms_received"
+    private val spam_CHANNEL = "com.example.hackdol1_1/spam_detection"
     private val callReceiver = CallReceiver()
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -39,6 +39,20 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, spam_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "isSpam") {
+                val message = call.argument<String>("message")
+                if (message != null) {
+                    val isSpam = callReceiver.predictSpam(message)
+                    result.success(isSpam)
+                } else {
+                    result.error("INVALID_ARGUMENT", "Message is null", null)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
+
         checkAndRequestPermissions()
 
         val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
@@ -52,13 +66,12 @@ class MainActivity : FlutterActivity() {
 
     private fun checkAndRequestPermissions() {
         val permissions = arrayOf(
-                Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_CALL_LOG,
-                Manifest.permission.CALL_PHONE,
-                Manifest.permission.MODIFY_PHONE_STATE,
-                Manifest.permission.ANSWER_PHONE_CALLS,
-                Manifest.permission.RECEIVE_SMS,
-
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.READ_CALL_LOG,
+            Manifest.permission.CALL_PHONE,
+            Manifest.permission.MODIFY_PHONE_STATE,
+            Manifest.permission.ANSWER_PHONE_CALLS,
+            Manifest.permission.RECEIVE_SMS
         )
 
         val permissionsToRequest = permissions.filter {
@@ -77,13 +90,13 @@ class MainActivity : FlutterActivity() {
 
     private fun showNotificationListenerDialog() {
         AlertDialog.Builder(this)
-                .setTitle("Notification Listener Service")
-                .setMessage("차단된 번호의 SMS 알림을 차단하려면 알림 수신 서비스를 활성화하세요.")
-                .setPositiveButton("Enable") { _, _ ->
-                    startActivityForResult(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS), 1001)
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
+            .setTitle("Notification Listener Service")
+            .setMessage("차단된 번호의 SMS 알림을 차단하려면 알림 수신 서비스를 활성화하세요.")
+            .setPositiveButton("Enable") { _, _ ->
+                startActivityForResult(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS), 1001)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
