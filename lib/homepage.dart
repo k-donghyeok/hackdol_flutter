@@ -217,13 +217,21 @@ class _MainScreenState extends State<MainScreen> {
                 ListTile(
                   title: Text('내 정보 확인'),
                   onTap: () {
+<<<<<<< Updated upstream
                     _showUserInfoDialog(context);
+=======
+                    _launchURL('https://www.example.com'); // 예시 URL
+>>>>>>> Stashed changes
                   },
                 ),
                 ListTile(
                   title: Text('로그아웃'),
                   onTap: () {
+<<<<<<< Updated upstream
                     _showLogoutDialog(context);
+=======
+                    _launchURL('https://www.example.com'); // 예시 URL
+>>>>>>> Stashed changes
                   },
                 ),
               ],
@@ -231,6 +239,7 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
+<<<<<<< Updated upstream
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -247,6 +256,24 @@ class _MainScreenState extends State<MainScreen> {
             ),
             SizedBox(height: 20),
             DataTable(
+=======
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(height: 20),
+          Center(
+            child: Text(
+              '실시간 스팸신고 랭킹',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Expanded(
+            child: DataTable(
+>>>>>>> Stashed changes
               columns: [
                 DataColumn(label: Text('등수', style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(label: Text('전화번호', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -255,6 +282,7 @@ class _MainScreenState extends State<MainScreen> {
               rows: postList.map((data) => DataRow(
                 cells: [
                   DataCell(Text(data['rank'].toString())),
+<<<<<<< Updated upstream
                   DataCell(
                     Text(data['title'].toString()),
                     onTap: () {
@@ -266,10 +294,14 @@ class _MainScreenState extends State<MainScreen> {
                       );
                     },
                   ),
+=======
+                  DataCell(Text(data['title'].toString())),
+>>>>>>> Stashed changes
                   DataCell(Text(data['reportCount'].toString())),
                 ],
               )).toList(),
             ),
+<<<<<<< Updated upstream
             SizedBox(height: 20),
             SizedBox(
               height: 200, // 배너의 높이를 지정합니다.
@@ -339,17 +371,46 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
+=======
+          ),
+          SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                MyBannerWidget(
+                  imageUrl: 'assets/image/police.png',
+                  linkUrl: 'https://www.police.go.kr',
+                  label: '경찰청 사이트로 이동',
+                ),
+                SizedBox(width: 50),
+                MyBannerWidget(
+                  imageUrl: 'assets/image/kisa.png',
+                  linkUrl: 'https://spam.kisa.or.kr/spam/ss/ssSpamInfo.do?mi=1025',
+                  label: 'KISA 사이트로 이동',
+                ),
+              ],
+            ),
+          ),
+        ],
+>>>>>>> Stashed changes
       ),
     );
   }
 
   void _launchURL(String url) async {
     if (await canLaunch(url)) {
+<<<<<<< Updated upstream
       await launch(url, forceSafariVC: false); // forceSafariVC false로 설정
+=======
+      await launch(url);
+>>>>>>> Stashed changes
     } else {
       throw 'Could not launch $url';
     }
   }
+<<<<<<< Updated upstream
 
   void _showUserInfoDialog(BuildContext context) {
     showDialog(
@@ -402,6 +463,27 @@ class _MainScreenState extends State<MainScreen> {
             }
           },
         );
+=======
+}
+
+class MyBannerWidget extends StatelessWidget {
+  final String imageUrl;
+  final String linkUrl;
+  final String label;
+
+  const MyBannerWidget({
+    required this.imageUrl,
+    required this.linkUrl,
+    required this.label,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        _launchURL(linkUrl);
+>>>>>>> Stashed changes
       },
     );
   }
@@ -430,6 +512,7 @@ class _MainScreenState extends State<MainScreen> {
     final userData = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
     return userData.data() as Map<String, dynamic>;
   }
+<<<<<<< Updated upstream
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -462,4 +545,6 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
+=======
+>>>>>>> Stashed changes
 }
