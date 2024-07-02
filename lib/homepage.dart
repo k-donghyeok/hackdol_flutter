@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/block_tell.dart';
 import 'FreeBoardPage.dart';
 import 'myfirebase.dart';
 import 'nativeCommunication.dart';
-import 'RePortNumber.dart'; // report_number_screen.dart 파일을 임포트합니다.
+import 'RePortNumber.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'spam_report_detail_screen.dart';
+import 'my_banner_widget.dart';
+import 'dart:async';
 
 void main() {
   runApp(MyApp());
@@ -36,12 +41,40 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   List<Map<String, dynamic>> postList = [];
+  List<Map<String, dynamic>> newsList = [];
+  PageController _pageController = PageController();
+  Timer? _timer;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
     _initializePage();
     _fetchSpamReports();
+    _fetchNews();
+
+    _timer = Timer.periodic(Duration(seconds: 2), (Timer timer) {
+      if (_currentPage < newsList.length - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: Duration(milliseconds: 1),
+          curve: Curves.easeIn,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _initializePage() async {
@@ -73,6 +106,27 @@ class _MainScreenState extends State<MainScreen> {
         postList = tempList.take(5).toList(); // 상위 5개 항목만 선택
       });
     });
+  }
+
+  Future<void> _fetchNews() async {
+    final response = await http.get(Uri.parse('https://newsapi.org/v2/top-headlines?country=us&apiKey=YOUR_API_KEY'));
+    if (response.statusCode == 200) {
+      Map<String, dynamic> jsonData = jsonDecode(response.body);
+      List<dynamic> articles = jsonData['articles'];
+      List<Map<String, dynamic>> tempList = [];
+      articles.forEach((article) {
+        tempList.add({
+          "imageUrl": article['urlToImage'] ?? '',
+          "linkUrl": article['url'] ?? '',
+          "label": article['title'] ?? ''
+        });
+      });
+      setState(() {
+        newsList = tempList;
+      });
+    } else {
+      throw Exception('Failed to load news');
+    }
   }
 
   @override
@@ -163,13 +217,21 @@ class _MainScreenState extends State<MainScreen> {
                 ListTile(
                   title: Text('내 정보 확인'),
                   onTap: () {
+<<<<<<< Updated upstream
                     _showUserInfoDialog(context);
+=======
+                    _launchURL('https://www.example.com'); // 예시 URL
+>>>>>>> Stashed changes
                   },
                 ),
                 ListTile(
                   title: Text('로그아웃'),
                   onTap: () {
+<<<<<<< Updated upstream
                     _showLogoutDialog(context);
+=======
+                    _launchURL('https://www.example.com'); // 예시 URL
+>>>>>>> Stashed changes
                   },
                 ),
               ],
@@ -177,6 +239,24 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
+<<<<<<< Updated upstream
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(height: 20),
+            Center(
+              child: Text(
+                '실시간 스팸신고 랭킹',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            DataTable(
+=======
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -193,6 +273,7 @@ class _MainScreenState extends State<MainScreen> {
           SizedBox(height: 20),
           Expanded(
             child: DataTable(
+>>>>>>> Stashed changes
               columns: [
                 DataColumn(label: Text('등수', style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(label: Text('전화번호', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -201,6 +282,7 @@ class _MainScreenState extends State<MainScreen> {
               rows: postList.map((data) => DataRow(
                 cells: [
                   DataCell(Text(data['rank'].toString())),
+<<<<<<< Updated upstream
                   DataCell(
                     Text(data['title'].toString()),
                     onTap: () {
@@ -212,10 +294,84 @@ class _MainScreenState extends State<MainScreen> {
                       );
                     },
                   ),
+=======
+                  DataCell(Text(data['title'].toString())),
+>>>>>>> Stashed changes
                   DataCell(Text(data['reportCount'].toString())),
                 ],
               )).toList(),
             ),
+<<<<<<< Updated upstream
+            SizedBox(height: 20),
+            SizedBox(
+              height: 200, // 배너의 높이를 지정합니다.
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: newsList.length,
+                itemBuilder: (context, index) {
+                  final news = newsList[index];
+                  return MyBannerWidget(
+                    imageUrl: news['imageUrl'],
+                    linkUrl: news['linkUrl'],
+                    label: news['label'],
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 20,
+                runSpacing: 20,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      _launchURL('https://www.police.go.kr');
+                    },
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/image/police.png',
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '경찰청 사이트로 이동',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      _launchURL('https://spam.kisa.or.kr/spam/ss/ssSpamInfo.do?mi=1025');
+                    },
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'assets/image/kisa.png',
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'KISA 사이트로 이동',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+=======
           ),
           SizedBox(height: 20),
           Padding(
@@ -238,17 +394,23 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
         ],
+>>>>>>> Stashed changes
       ),
     );
   }
 
   void _launchURL(String url) async {
     if (await canLaunch(url)) {
+<<<<<<< Updated upstream
       await launch(url, forceSafariVC: false); // forceSafariVC false로 설정
+=======
+      await launch(url);
+>>>>>>> Stashed changes
     } else {
       throw 'Could not launch $url';
     }
   }
+<<<<<<< Updated upstream
 
   void _showUserInfoDialog(BuildContext context) {
     showDialog(
@@ -301,6 +463,27 @@ class _MainScreenState extends State<MainScreen> {
             }
           },
         );
+=======
+}
+
+class MyBannerWidget extends StatelessWidget {
+  final String imageUrl;
+  final String linkUrl;
+  final String label;
+
+  const MyBannerWidget({
+    required this.imageUrl,
+    required this.linkUrl,
+    required this.label,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        _launchURL(linkUrl);
+>>>>>>> Stashed changes
       },
     );
   }
@@ -329,6 +512,7 @@ class _MainScreenState extends State<MainScreen> {
     final userData = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
     return userData.data() as Map<String, dynamic>;
   }
+<<<<<<< Updated upstream
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -361,117 +545,6 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
-}
-
-class MyBannerWidget extends StatelessWidget {
-  final String imageUrl;
-  final String linkUrl;
-  final String label;
-
-  const MyBannerWidget({
-    required this.imageUrl,
-    required this.linkUrl,
-    required this.label,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        _launchURL(linkUrl);
-      },
-      child: Column(
-        children: [
-          Image.asset(
-            imageUrl,
-            width: 150,
-            height: 150,
-            fit: BoxFit.cover,
-          ),
-          SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _launchURL(String url) async {
-    if (await canLaunch(url)) {
-      await launch(url, forceSafariVC: false); // forceSafariVC false로 설정
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-}
-
-class SpamReportDetailScreen extends StatelessWidget {
-  final String phoneNumber;
-
-  const SpamReportDetailScreen({required this.phoneNumber, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('신고 내역'),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('detailed_reports')
-            .where('number', isEqualTo: phoneNumber)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          var documents = snapshot.data!.docs;
-
-          return ListView.builder(
-            itemCount: documents.length,
-            itemBuilder: (context, index) {
-              var document = documents[index];
-              return ListTile(
-                title: Text('제목: ${document['title']}'),
-                subtitle: Text('글쓴이: ${document['author']}'),
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text('신고 내역'),
-                        content: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('신고 번호: ${document['number']}'),
-                            SizedBox(height: 8),
-                            Text('제목: ${document['title']}'),
-                            SizedBox(height: 8),
-                            Text('신고 사유: ${document['reason']}'),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            child: Text('닫기'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
+=======
+>>>>>>> Stashed changes
 }
