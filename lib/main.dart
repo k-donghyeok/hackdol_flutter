@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hackdol1_1/homepage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/pages/join.dart';
-import 'package:flutter/material.dart';
 import 'package:hackdol1_1/components/custom_form.dart';
 import 'package:hackdol1_1/components/logo.dart';
 import 'package:hackdol1_1/size.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hackdol1_1/block_tell.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'myfirebase.dart';
@@ -28,17 +27,48 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  static const platform = MethodChannel('com.example.hackdol1_1/spam_detection');
+
   @override
   void initState() {
     super.initState();
     _initializeApp();
+
+    // 네이티브(Android)로부터 메시지 수신을 처리하는 핸들러 설정
+    platform.setMethodCallHandler(_handleNativeMessage);
   }
 
   Future<void> _initializeApp() async {
-
-
     // 여기에 앱이 처음 실행되었을 때 호출할 함수를 작성합니다.
     print("앱이 처음 실행되었습니다.");
+  }
+
+  Future<void> _handleNativeMessage(MethodCall call) async {
+    if (call.method == "smsReceived") {
+      String message = call.arguments["message"];
+      bool isSpam = call.arguments["isSpam"];
+      _showPopupMessage(message, isSpam);
+    }
+  }
+
+  void _showPopupMessage(String message, bool isSpam) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isSpam ? "Spam SMS Received" : "New SMS Received"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -65,7 +95,6 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -103,51 +132,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
-
-/*
-class RegistrationForm extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("회원 가입"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          child: Column(
-            children: <Widget>[
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '이름',
-                ),
-              ),
-              // 다른 폼 필드 추가
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '이메일',
-                ),
-              ),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '비밀번호',
-                ),
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  // 회원가입 버튼 클릭 시 처리할 내용
-                },
-                child: const Text("회원가입"),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
- */

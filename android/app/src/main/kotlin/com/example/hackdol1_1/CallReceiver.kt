@@ -3,71 +3,64 @@ package com.example.hackdol1_1
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.res.AssetFileDescriptor
 import android.os.Build
-import android.telecom.TelecomManager
 import android.telephony.SmsMessage
 import android.telephony.TelephonyManager
 import android.util.Log
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.flex.FlexDelegate
 import org.tensorflow.lite.support.common.FileUtil
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
-import org.tensorflow.lite.DataType
+import org.json.JSONObject
+import java.io.FileNotFoundException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.channels.FileChannel
+import java.nio.charset.StandardCharsets
 
 class CallReceiver : BroadcastReceiver() {
     private val TAG = "CallReceiver"
     private lateinit var interpreter: Interpreter
+    private lateinit var tokenizer: Tokenizer
     private val blockedNumbers: MutableList<String> = mutableListOf()
-    private val maxLen = 256  // maxLen 변수를 클래스 속성으로 정의
-
-    // TensorFlow Lite 모델 로드 함수
-    private fun loadModelFile(context: Context): ByteBuffer {
-        return FileUtil.loadMappedFile(context, "spam_model.tflite")
-        Log.d(TAG, "FileUtil.loadMappedFile $context")
-    }
-
-    // 메시지 전처리 함수
-    private fun preprocessMessage(message: String): FloatArray {
-        val input = FloatArray(maxLen) { 0.0f }
-        val words = message.split(" ")
-        for (i in words.indices) {
-            if (i < maxLen) {
-                input[i] = words[i].hashCode().toFloat()
-            }
-        }
-        Log.d(TAG, "FileUtil.loadMappedFile $input")
-        return input
-    }
-
-    // 스팸 예측 함수
-    fun predictSpam(context: Context, message: String): Boolean {
-        if (!::interpreter.isInitialized) {
-            interpreter = Interpreter(loadModelFile(context))
-            Log.d(TAG, "!::interpreter.isInitialized: $interpreter")
-        }
-
-        val inputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, maxLen), DataType.FLOAT32)
-        val inputData = preprocessMessage(message)
-        inputBuffer.loadArray(inputData)
-        Log.d(TAG, "inputBuffer.loadArray: $inputData")
-        val outputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, 1), DataType.FLOAT32)
-        interpreter.run(inputBuffer.buffer, outputBuffer.buffer)
-        Log.d(TAG, "inputBuffer.loadArray: ${outputBuffer.floatArray[0]}")
-        return outputBuffer.floatArray[0] > 0.5
-    }
-
-    // 차단된 전화번호 설정
-    fun setBlockedNumbers(numbers: List<String>) {
-        blockedNumbers.clear()
-        blockedNumbers.addAll(numbers)
-    }
 
     override fun onReceive(context: Context, intent: Intent) {
         blockedNumbers.clear()
         blockedNumbers.addAll(BlockedNumbersManager.loadBlockedNumbers(context))
+
+        if (!::interpreter.isInitialized) {
+            try {
+                // FlexDelegate 초기화
+                Log.d(TAG, "Initializing FlexDelegate")
+                val delegate = FlexDelegate()
+                val options = Interpreter.Options().addDelegate(delegate)
+
+                // TFLite 모델 로드
+                try {
+                    val modelFile = FileUtil.loadMappedFile(context, "converted_model.tflite")
+                    Log.d(TAG, "Model file loaded successfully")
+                    interpreter = Interpreter(modelFile, options)
+                    Log.d(TAG, "Interpreter initialized successfully")
+                } catch (e: FileNotFoundException) {
+                    Log.e(TAG, "Model file not found: ${e.message}")
+                    return
+                }
+
+                // Tokenizer 로드
+                try {
+                    val tokenizerBuffer = FileUtil.loadMappedFile(context, "tokenizer.json")
+                    val tokenizerJson = StandardCharsets.UTF_8.decode(tokenizerBuffer).toString()
+                    Log.d(TAG, "Tokenizer file loaded successfully")
+                    tokenizer = Tokenizer(JSONObject(tokenizerJson))
+                    Log.d(TAG, "Tokenizer initialized successfully")
+                } catch (e: FileNotFoundException) {
+                    Log.e(TAG, "Tokenizer file not found: ${e.message}")
+                    return
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading TFLite model or tokenizer", e)
+                return  // 모델 로딩 실패 시 return
+            }
+        }
 
         when (intent.action) {
             TelephonyManager.ACTION_PHONE_STATE_CHANGED -> {
@@ -99,12 +92,13 @@ class CallReceiver : BroadcastReceiver() {
                         if (sender != null && blockedNumbers.contains(sender)) {
                             Log.d(TAG, "Ignoring SMS from blocked number: $sender")
                             abortBroadcast()
-                            return
                         } else {
-                                val intent = Intent("com.example.hackdol1_1.SMS_RECEIVED")
-                                intent.putExtra("message", messageBody)
-                                context.sendBroadcast(intent)
-                            }
+                            val isSpam = predictSpam(messageBody)
+                            // Flutter로 메시지와 스팸 여부 전달
+                            val broadcastIntent = Intent("com.example.hackdol1_1.SMS_RECEIVED")
+                            broadcastIntent.putExtra("message", messageBody)
+                            broadcastIntent.putExtra("isSpam", isSpam)
+                            context.sendBroadcast(broadcastIntent)
                         }
                     }
                 }
@@ -112,9 +106,43 @@ class CallReceiver : BroadcastReceiver() {
         }
     }
 
+    fun setBlockedNumbers(numbers: List<String>) {
+        blockedNumbers.clear()
+        blockedNumbers.addAll(numbers)
+    }
+
+    fun predictSpam(message: String): Boolean {
+        // TFLite 모델 예측 로직 추가
+        return try {
+            val sequences = tokenizeAndPad(message)
+            val inputBuffer = ByteBuffer.allocateDirect(4 * 100).order(ByteOrder.nativeOrder())
+            inputBuffer.asFloatBuffer().put(sequences)
+
+            val outputBuffer = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder())
+            interpreter.run(inputBuffer, outputBuffer)
+
+            val prediction = outputBuffer.asFloatBuffer().get(0)
+            Log.d(TAG, "Prediction: $prediction")
+            prediction > 0.5
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during prediction", e)
+            false
+        }
+    }
+
+    private fun tokenizeAndPad(message: String): FloatArray {
+        // 텍스트 토큰화 및 패딩 로직 추가
+        val sequences = tokenizer.textsToSequences(listOf(message))[0]
+        val padded = sequences.take(100).toMutableList()
+        while (padded.size < 100) {
+            padded.add(0)
+        }
+        return padded.map { it.toFloat() }.toFloatArray()
+    }
+
     private fun rejectCall(context: Context) {
         val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as android.telecom.TelecomManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             telecomManager.endCall()
@@ -129,4 +157,4 @@ class CallReceiver : BroadcastReceiver() {
             }
         }
     }
-
+}
