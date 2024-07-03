@@ -34,6 +34,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
           'phoneNumber': _phoneNumber,
           'gender': _gender,
           'email': _email,
+          'blocknumber':"",
         });
 
         ScaffoldMessenger.of(context).showSnackBar(

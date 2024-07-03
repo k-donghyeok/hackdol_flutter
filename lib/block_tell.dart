@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'myfirebase.dart';
+import 'nativeCommunication.dart'; // FirebaseService 클래스 추가
 
 class BlockPhoneNumberPage extends StatefulWidget {
   @override
@@ -7,41 +9,69 @@ class BlockPhoneNumberPage extends StatefulWidget {
 }
 
 class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
-  static const platform = MethodChannel('com.example.block_phone_number');
-
+  final FirebaseService _firebaseService = FirebaseService(); // FirebaseService 인스턴스 생성
   TextEditingController _phoneNumberController = TextEditingController();
   List<String> _blockedNumbers = [];
 
   @override
   void initState() {
     super.initState();
-    // 이미 차단된 전화번호들을 가져와서 리스트에 추가합니다.
-    _loadBlockedNumbers();
+    _initializePage();
   }
 
-  // 이미 차단된 전화번호들을 가져와서 리스트에 추가하는 메서드
-  Future<void> _loadBlockedNumbers() async {
+  Future<void> _initializePage() async {
     try {
-      List<dynamic> blockedNumbers =
-      await platform.invokeMethod('getBlockedNumbers');
+      List<String> blockedNumbers = await _firebaseService.loadBlockedNumbers();
       setState(() {
-        _blockedNumbers = blockedNumbers.cast<String>();
+        _blockedNumbers = blockedNumbers;
       });
-    } on PlatformException catch (e) {
-      print('Error loading blocked numbers: ${e.message}');
+      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
+    } catch (e) {
+      print('Error loading blocked numbers: $e');
     }
   }
 
-  Future<void> _callNativeCode(String phoneNumber) async {
+  Future<void> _blockPhoneNumber(String phoneNumber) async {
+    if (_blockedNumbers.contains(phoneNumber)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$phoneNumber is already blocked.')),
+      );
+      return;
+    }
+
     try {
-      await platform.invokeMethod('blockPhoneNumber', {'phoneNumber': phoneNumber});
-      print('전화번호가 차단되었습니다: $phoneNumber');
-      // 차단된 전화번호를 리스트에 추가합니다.
+      await _firebaseService.blockPhoneNumber(phoneNumber);
       setState(() {
         _blockedNumbers.add(phoneNumber);
       });
-    } on PlatformException catch (e) {
-      print('전화번호 차단 중 오류 발생: ${e.message}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$phoneNumber has been blocked.')),
+      );
+      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
+    } catch (error) {
+      print('Error blocking phone number: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to block phone number.')),
+      );
+    }
+  }
+
+  Future<void> _removeBlockedPhoneNumber(int index) async {
+    String phoneNumber = _blockedNumbers[index];
+    try {
+      await _firebaseService.removeBlockedPhoneNumber(phoneNumber);
+      setState(() {
+        _blockedNumbers.removeAt(index);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$phoneNumber has been unblocked.')),
+      );
+      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
+    } catch (error) {
+      print('Error unblocking phone number: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to unblock phone number.')),
+      );
     }
   }
 
@@ -61,35 +91,52 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
                 labelText: '전화번호',
-                hintText: '전화번호를 입력하세요',
+                hintText: '전화번호를 입력해주세요',
               ),
             ),
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                String phoneNumber = _phoneNumberController.text;
-                _callNativeCode(phoneNumber);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$phoneNumber를 차단했습니다.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                String phoneNumber =_phoneNumberController.text;
+                _blockPhoneNumber(phoneNumber);
               },
-              child: Text('전화번호 차단'),
+              child: Text('전화번호 차단하기'),
             ),
             SizedBox(height: 20),
             Text(
               '차단된 전화번호 목록',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            Text(
+              '옆으로 밀어서 삭제',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+            ),
             Expanded(
               child: ListView.builder(
                 itemCount: _blockedNumbers.length,
                 itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_blockedNumbers[index]),
-                    leading: Icon(Icons.block),
+                  return Dismissible(
+                    key: Key(_blockedNumbers[index]),
+                    background: Container(
+                      color: Colors.red,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 20),
+                            child: Icon(Icons.delete, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (direction) async {
+                      await _removeBlockedPhoneNumber(index);
+                    },
+                    child: ListTile(
+                      title: Text(_blockedNumbers[index]),
+                      leading: Icon(Icons.block),
+                    ),
                   );
                 },
               ),
@@ -109,7 +156,7 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
 
 void main() {
   runApp(MaterialApp(
-    title: '전화번호 차단',
+    title: 'Block Phone Number',
     home: BlockPhoneNumberPage(),
   ));
 }

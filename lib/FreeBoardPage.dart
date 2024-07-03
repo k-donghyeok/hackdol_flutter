@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class FreeBoardPage extends StatefulWidget {
   @override
@@ -6,66 +8,106 @@ class FreeBoardPage extends StatefulWidget {
 }
 
 class _FreeBoardPageState extends State<FreeBoardPage> {
-  List<Post> posts = []; // 게시글을 저장할 리스트
+  List<Post> posts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPosts();
+  }
+
+  Future<void> fetchPosts() async {
+    final snapshot = await FirebaseFirestore.instance.collection('posts').get();
+    final postsData = snapshot.docs.map((doc) => Post.fromDocument(doc)).toList();
+    setState(() {
+      posts = postsData;
+    });
+  }
+
+  Future<void> addPost(Post post) async {
+    final docRef = await FirebaseFirestore.instance.collection('posts').add({
+      'title': post.title,
+      'content': post.content,
+    });
+    post.id = docRef.id; // Firestore 문서 ID를 저장합니다.
+    setState(() {
+      posts.add(post);
+    });
+  }
+
+  Future<void> deletePost(Post post) async {
+    await FirebaseFirestore.instance.collection('posts').doc(post.id).delete();
+    setState(() {
+      posts.remove(post);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('자유게시판'),
+        backgroundColor: Colors.blue,
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            SizedBox(height: 10), // 조금의 여백을 추가합니다.
-            // 자유게시판 사용 방법 추가
             Text(
               '공지사항',
               style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10), // 조금의 여백을 추가합니다.
+            SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
-                _showUsageGuide(context); // 사용 방법을 표시하는 다이얼로그를 표시합니다.
+                _showUsageGuide(context);
               },
               child: Text('자유게시판 사용 방법'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
-            SizedBox(height: 20), // 여백 추가
-
-            // 저장된 게시글 제목들을 표시
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: posts.map((post) {
-                return GestureDetector(
-                  onTap: () {
-                    _openPostDetailPage(context, post); // 게시글 상세 화면으로 이동합니다.
-                  },
-                  child: Text(post.title),
-                );
-              }).toList(),
-            ),
-
-            SizedBox(height: 20), // 여백 추가
-
-            // 글쓰기 버튼
-            Padding(
-              padding: EdgeInsets.only(bottom: 20), // 아래쪽 여백 추가
-              child: ElevatedButton(
-                onPressed: () {
-                  _openWritePostPage(context); // 글쓰기 페이지로 이동합니다.
+            SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                itemCount: posts.length,
+                itemBuilder: (context, index) {
+                  final post = posts[index];
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 10),
+                    child: ListTile(
+                      title: Text(post.title),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () {
+                          _confirmDeletePost(context, post);
+                        },
+                      ),
+                      onTap: () {
+                        _openPostDetailPage(context, post);
+                      },
+                    ),
+                  );
                 },
-                child: Text('글쓰기'),
               ),
             ),
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _openWritePostPage(context);
+        },
+        child: Icon(Icons.add),
+        backgroundColor: Colors.blue,
+      ),
     );
   }
 
-  // 사용 방법을 표시하는 다이얼로그를 표시하는 함수
   void _showUsageGuide(BuildContext context) {
     showDialog(
       context: context,
@@ -86,7 +128,7 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // 다이얼로그를 닫습니다.
+                Navigator.of(context).pop();
               },
               child: Text('닫기'),
             ),
@@ -96,7 +138,6 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
     );
   }
 
-  // 글쓰기 페이지로 이동하는 함수
   void _openWritePostPage(BuildContext context) async {
     final result = await Navigator.push(
       context,
@@ -106,24 +147,47 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
     );
 
     if (result != null) {
-      setState(() {
-        posts.add(result); // 작성한 게시글을 리스트에 추가합니다.
-      });
+      addPost(result);
     }
   }
 
-  // 게시글 상세 화면으로 이동하는 함수
   void _openPostDetailPage(BuildContext context, Post post) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PostDetailPage(post), // 게시글 상세 화면으로 이동합니다.
+        builder: (context) => PostDetailPage(post),
       ),
+    );
+  }
+
+  void _confirmDeletePost(BuildContext context, Post post) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('삭제 확인'),
+          content: Text('정말로 이 게시물을 삭제하시겠습니까?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('아니요'),
+            ),
+            TextButton(
+              onPressed: () {
+                deletePost(post);
+                Navigator.of(context).pop();
+              },
+              child: Text('예'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-// 글쓰기 페이지 위젯
 class WritePostPage extends StatelessWidget {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
@@ -133,33 +197,32 @@ class WritePostPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('게시글 작성'),
+        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // 제목 입력 필드
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
                 labelText: '제목',
+                border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 10), // 조금의 여백을 추가합니다.
-            // 내용 입력 필드
+            SizedBox(height: 10),
             TextField(
               controller: _contentController,
               decoration: InputDecoration(
                 labelText: '내용',
+                border: OutlineInputBorder(),
               ),
-              maxLines: 5, // 여러 줄 입력 가능하도록 설정합니다.
+              maxLines: 5,
             ),
-            SizedBox(height: 20), // 여백 추가
-            // 게시 버튼
+            SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // 작성한 글을 저장하고 글쓰기 페이지를 닫습니다.
                 Navigator.pop(
                   context,
                   Post(
@@ -169,6 +232,12 @@ class WritePostPage extends StatelessWidget {
                 );
               },
               child: Text('게시'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
           ],
         ),
@@ -177,15 +246,40 @@ class WritePostPage extends StatelessWidget {
   }
 }
 
-// 게시글 클래스
 class Post {
+  String? id;
   final String title;
   final String content;
 
-  Post(this.title, this.content);
+  Post(this.title, this.content, {this.id});
+
+  factory Post.fromDocument(DocumentSnapshot doc) {
+    return Post(
+      doc['title'],
+      doc['content'],
+      id: doc.id,
+    );
+  }
 }
 
-// 게시글 상세 화면 위젯
+class Comment {
+  String? id;
+  final String postId;
+  final String content;
+  final DateTime timestamp;
+
+  Comment(this.postId, this.content, this.timestamp, {this.id});
+
+  factory Comment.fromDocument(DocumentSnapshot doc) {
+    return Comment(
+      doc['postId'],
+      doc['content'],
+      (doc['timestamp'] as Timestamp).toDate(),
+      id: doc.id,
+    );
+  }
+}
+
 class PostDetailPage extends StatelessWidget {
   final Post post;
 
@@ -195,18 +289,139 @@ class PostDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(post.title), // 게시글 제목을 앱 바에 표시합니다.
+        title: Text(post.title),
+        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // 게시글 내용 표시
-            Text(post.content),
+            Text(
+              post.content,
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 20),
+            Expanded(
+              child: CommentSection(post.id!),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class CommentSection extends StatefulWidget {
+  final String postId;
+
+  CommentSection(this.postId);
+
+  @override
+  _CommentSectionState createState() => _CommentSectionState();
+}
+
+class _CommentSectionState extends State<CommentSection> {
+  List<Comment> comments = [];
+  final TextEditingController _commentController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    fetchComments();
+  }
+
+  Future<void> fetchComments() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(widget.postId)
+        .collection('comments')
+        .orderBy('timestamp', descending: true)
+        .get();
+    final commentsData = snapshot.docs.map((doc) => Comment.fromDocument(doc)).toList();
+    setState(() {
+      comments = commentsData;
+    });
+  }
+
+  Future<void> addComment(String content) async {
+    final newComment = Comment(
+      widget.postId,
+      content,
+      DateTime.now(),
+    );
+
+    final docRef = await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(widget.postId)
+        .collection('comments')
+        .add({
+      'postId': newComment.postId,
+      'content': newComment.content,
+      'timestamp': newComment.timestamp,
+    });
+
+    setState(() {
+      comments.insert(0, Comment(newComment.postId, newComment.content, newComment.timestamp, id: docRef.id));
+    });
+
+    _commentController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: ListView.builder(
+            itemCount: comments.length,
+            itemBuilder: (context, index) {
+              final comment = comments[index];
+              return ListTile(
+                title: Text(comment.content),
+                subtitle: Text(comment.timestamp.toString()),
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: _commentController,
+                  decoration: InputDecoration(
+                    labelText: '댓글을 입력하세요',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.send),
+                onPressed: () {
+                  addComment(_commentController.text);
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: FreeBoardPage(),
     );
   }
 }

@@ -28,7 +28,6 @@ if (flutterVersionName == null) {
 android {
     namespace "com.example.hackdol1_1"
     compileSdkVersion 34
-
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -70,5 +69,11 @@ flutter {
 }
 
 dependencies {
+<<<<<<< HEAD
     implementation 'com.google.android.material:material:<version>'
+=======
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'org.tensorflow:tensorflow-lite:2.9.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.1.0'
+>>>>>>> main
 }

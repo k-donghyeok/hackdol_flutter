@@ -7,6 +7,12 @@ import 'package:hackdol1_1/components/custom_form.dart';
 import 'package:hackdol1_1/components/logo.dart';
 import 'package:hackdol1_1/size.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:hackdol1_1/block_tell.dart';
+import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'myfirebase.dart';
+import 'nativeCommunication.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +20,26 @@ void main() async {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+
+
+    // 여기에 앱이 처음 실행되었을 때 호출할 함수를 작성합니다.
+    print("앱이 처음 실행되었습니다.");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,37 +66,25 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
 
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Test title"),
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.pushNamed(context, "/registration");
-          },
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            child: const Text("회원가입"), // 수정된 부분: 버튼 텍스트를 "회원가입"으로 변경
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  @override
+  void initState() {
+    super.initState();
+    _initializePage();
+  }
+
+  Future<void> _initializePage() async {
+    // 여기에 페이지가 처음 실행되었을 때 호출할 함수를 작성합니다.
+    print("LoginPage가 처음 실행되었습니다.");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,14 +95,15 @@ class LoginPage extends StatelessWidget {
           children: [
             SizedBox(height: xlargeGap),
             Logo("Login"),
-            SizedBox(height: largeGap), // 1. 추가
-            CustomForm(), // 2. 추가
+            SizedBox(height: largeGap),
+            CustomForm(),
           ],
         ),
       ),
     );
   }
 }
+
 
 /*
 class RegistrationForm extends StatelessWidget {
