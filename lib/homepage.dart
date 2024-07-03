@@ -208,6 +208,16 @@ class _MainScreenState extends State<MainScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
+                          builder: (context) => ReportNumberScreen()), // 번호신고 페이지로 이동
+                    );
+                  },
+                ),
+                ListTile(
+                  title: Text('챗봇'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
                           builder: (context) => ChatScreen()), // 챗봇 페이지로 이동
                     );
                   },
