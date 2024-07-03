@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/block_tell.dart';
 import 'FreeBoardPage.dart';
-import 'ChatScreen.dart';
+import 'chat_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key});
