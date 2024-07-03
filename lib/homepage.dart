@@ -53,7 +53,7 @@ class _MainScreenState extends State<MainScreen> {
     _fetchSpamReports();
     _fetchNews();
 
-    _timer = Timer.periodic(Duration(seconds: 2), (Timer timer) {
+    _timer = Timer.periodic(Duration(seconds: 4), (Timer timer) {
       if (_currentPage < newsList.length - 1) {
         _currentPage++;
       } else {
@@ -63,7 +63,7 @@ class _MainScreenState extends State<MainScreen> {
       if (_pageController.hasClients) {
         _pageController.animateToPage(
           _currentPage,
-          duration: Duration(milliseconds: 1),
+          duration: Duration(milliseconds: 3600),
           curve: Curves.easeIn,
         );
       }
@@ -109,7 +109,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _fetchNews() async {
-    final response = await http.get(Uri.parse('https://newsapi.org/v2/top-headlines?country=us&apiKey=YOUR_API_KEY'));
+    final response = await http.get(Uri.parse('https://newsapi.org/v2/top-headlines?country=us&apiKey=2d48e97c9323495aada624bd870c61dc'));
     if (response.statusCode == 200) {
       Map<String, dynamic> jsonData = jsonDecode(response.body);
       List<dynamic> articles = jsonData['articles'];
