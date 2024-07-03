@@ -4,9 +4,8 @@ import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/block_tell.dart';
 import 'FreeBoardPage.dart';
-<<<<<<< HEAD
+
 import 'chat_screen.dart';
-=======
 import 'myfirebase.dart';
 import 'nativeCommunication.dart';
 import 'RePortNumber.dart';
@@ -19,7 +18,6 @@ import 'dart:async';
 void main() {
   runApp(MyApp());
 }
->>>>>>> main
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -209,16 +207,10 @@ class _MainScreenState extends State<MainScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-<<<<<<< HEAD
                       MaterialPageRoute(
                           builder: (context) => ChatScreen()), // 챗봇 페이지로 이동
                     );
-                  }
-=======
-                      MaterialPageRoute(builder: (context) => ReportNumberScreen()), // ReportNumberScreen으로 이동
-                    );
                   },
->>>>>>> main
                 ),
               ],
             ),
@@ -362,8 +354,6 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-<<<<<<< HEAD
-=======
   void _showUserInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -475,5 +465,4 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
->>>>>>> main
 }
