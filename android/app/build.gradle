@@ -37,6 +37,11 @@ android {
         jvmTarget = '1.8'
     }
 
+    aaptOptions {
+        noCompress "tflite"
+        noCompress "json"
+    }
+
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
@@ -62,14 +67,15 @@ flutter {
 }
 
 dependencies {
+    implementation 'com.squareup.okhttp3:okhttp:4.9.1'
     implementation 'androidx.multidex:multidex:2.0.1'
-    implementation 'org.tensorflow:tensorflow-lite:2.9.0'
-    implementation 'org.tensorflow:tensorflow-lite-support:0.1.0'
+    implementation "androidx.work:work-runtime-ktx:2.7.1"
+    implementation 'org.tensorflow:tensorflow-lite:2.15.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.3.1'
     implementation 'org.tensorflow:tensorflow-lite-metadata:0.1.0'
-    implementation 'org.tensorflow:tensorflow-lite-select-tf-ops:2.9.0'  // 추가된 의존성
+    implementation 'org.tensorflow:tensorflow-lite-select-tf-ops:2.9.0'  // FlexDelegate를 위한 의존성 추가
 
     // Override the Kotlin version used by tflite_flutter_helper
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlin_version")
 }
-
