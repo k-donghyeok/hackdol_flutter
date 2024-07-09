@@ -2,7 +2,6 @@ package com.example.hackdol1_1
 
 import android.Manifest
 import android.app.AlertDialog
-import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -17,17 +16,21 @@ import androidx.core.app.ActivityCompat
 import androidx.work.WorkManager
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.workDataOf
-import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.yourapp/block_call"
+class MainActivity : FixFlutterActivity() {
+    private val CHANNEL = "com.example.hackdol1_1/block_call"
     private val spam_CHANNEL = "com.example.hackdol1_1/spam_detection"
+    private val ENGINE_ID = "my_engine_id"
     private val callReceiver = CallReceiver()
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // FlutterEngine을 캐시에 저장
+        FlutterEngineCache.getInstance().put(ENGINE_ID, flutterEngine)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "updateBlockedNumbers") {
@@ -63,9 +66,6 @@ class MainActivity : FlutterActivity() {
 
         val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
         registerReceiver(callReceiver, filter)
-
-        val smsFilter = IntentFilter("com.example.hackdol1_1.SMS_RECEIVED")
-        registerReceiver(smsReceiver, smsFilter)
 
         if (!isNotificationServiceEnabled()) {
             showNotificationListenerDialog()
@@ -122,21 +122,6 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(callReceiver)
-        unregisterReceiver(smsReceiver)
-    }
-
-    private val smsReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            intent?.let {
-                val message = it.getStringExtra("message")
-                val isSpam = it.getBooleanExtra("isSpam", false)
-                val sender = it.getStringExtra("sender")
-                val arguments = mapOf("message" to message, "isSpam" to isSpam, "sender" to sender)
-                MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger!!, spam_CHANNEL)
-                    .invokeMethod("smsReceived", arguments)
-                Log.d("MainActivity", "메인액티비티에서 플러터쪽으로 전달: $message,$isSpam,$sender")
-            }
-        }
     }
 
     private fun ignoreBatteryOptimization(context: Context) {

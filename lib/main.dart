@@ -14,7 +14,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'myfirebase.dart';
 import 'nativeCommunication.dart';
-import 'popup_screen.dart'; // popup_screen.dart 파일 import
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  static const platform = MethodChannel('com.example.hackdol1_1/spam_detection');
+  static const platform = MethodChannel('com.example.hackdol1_1/spam_detection_event');
   final FirebaseService _firebaseService = FirebaseService(); // FirebaseService 인스턴스 생성
   List<String> _blockedNumbers = [];
   bool _isLoading = true;
@@ -81,110 +82,138 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _handleNativeMessage(MethodCall call) async {
-    if (call.method == "smsReceived") {
-      String message = call.arguments["message"];
-      bool isSpam = call.arguments["isSpam"];
-      String sender = call.arguments["sender"];
-      print('플러터 에서 수신완료 $message,$isSpam,$sender');
-      _showPopupMessage(message, isSpam, sender);
+    try {
+      if (call.method == "onSmsProcessed") {
+        String message = call.arguments["message"];
+        bool isSpam = call.arguments["isSpam"] == "true";
+        String sender = call.arguments["sender"];
+        print('플러터 에서 수신완료 $message,$isSpam,$sender');
+        _showPopupMessage(message, isSpam, sender);
+      }
+    } catch (e) {
+      print('Error: $e');
+      print('StackTrace: ${StackTrace.current}');
     }
   }
 
   void _showPopupMessage(String message, bool isSpam, String sender) {
-    OverlayState? overlayState = Overlay.of(context);
-    if (overlayState == null) {
-      print('OverlayState is null');
-      return;
-    }
+    try {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final overlayState = navigatorKey.currentState?.overlay;
+        if (overlayState == null) {
+          print('OverlayState is null');
+          return;
+        }
 
-    overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        top: 50.0,
-        left: 10.0,
-        right: 10.0,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: isSpam ? Colors.red : Colors.green,
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Message from $sender',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  message,
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-                SizedBox(height: 10),
-                if (isSpam)
-                  ElevatedButton(
-                    onPressed: () {
-                      _blockPhoneNumber(sender);
-                      overlayEntry.remove();
-                    },
-                    child: Text('Block'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+        overlayEntry = OverlayEntry(
+          builder: (context) => Positioned(
+            top: 50.0,
+            left: 10.0,
+            right: 10.0,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: EdgeInsets.all(20.0),
+                decoration: BoxDecoration(
+                  color: isSpam ? Colors.red : Colors.green,
+                  borderRadius: BorderRadius.circular(20.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10.0,
+                      offset: Offset(0, 10),
                     ),
-                  ),
-                ElevatedButton(
-                  onPressed: () {
-                    overlayEntry.remove();
-                  },
-                  child: Text('Close'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                  ),
+                  ],
                 ),
-              ],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '발신자 $sender',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    if (isSpam)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Text(
+                          "스팸 메시지 의심이 됩니다. 주의를 요합니다.",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.yellowAccent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            _blockPhoneNumber(sender);
+                            overlayEntry.remove();
+                          },
+                          child: Text('Block'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            textStyle: TextStyle(fontSize: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30.0),
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            overlayEntry.remove();
+                          },
+                          child: Text('Close'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            textStyle: TextStyle(fontSize: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30.0),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        );
 
-    overlayState.insert(overlayEntry);
+        overlayState.insert(overlayEntry);
 
-    Future.delayed(Duration(seconds: 5), () {
-      overlayEntry.remove();
-    });
-  }
-
-  Future<void> _blockPhoneNumber(String phoneNumber) async {
-    if (_blockedNumbers.contains(phoneNumber)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$phoneNumber is already blocked.')),
-      );
-      return;
-    }
-
-    try {
-      await _firebaseService.blockPhoneNumber(phoneNumber);
-      setState(() {
-        _blockedNumbers.add(phoneNumber);
+        Future.delayed(Duration(seconds: 5), () {
+          overlayEntry.remove();
+        });
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$phoneNumber has been blocked.')),
-      );
-      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
-    } catch (error) {
-      print('Error blocking phone number: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to block phone number.')),
-      );
+    } catch (e) {
+      print('Error: $e');
+      print('StackTrace: ${StackTrace.current}');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       theme: ThemeData(
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(

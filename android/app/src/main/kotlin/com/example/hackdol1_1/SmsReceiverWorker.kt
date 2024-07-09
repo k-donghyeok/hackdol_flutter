@@ -1,19 +1,24 @@
 package com.example.hackdol1_1
 
 import android.content.Context
-import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import io.flutter.embedding.engine.FlutterEngineCache
+import io.flutter.plugin.common.MethodChannel
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import io.flutter.embedding.engine.FlutterJNI
 
 class SmsReceiverWorker(context: Context, workerParams: WorkerParameters) : Worker(context, workerParams) {
     private val TAG = "SmsReceiverWorker"
     private val blockedNumbers: MutableList<String> = mutableListOf()
+    private val flutterJNI = FlutterJNI()
 
     override fun doWork(): Result {
         Log.d(TAG, "SmsReceiverWorker doWork called")
@@ -65,13 +70,25 @@ class SmsReceiverWorker(context: Context, workerParams: WorkerParameters) : Work
                         val isSpam = json.getBoolean("is_spam")
                         Log.d(TAG, "Prediction from server: $isSpam")
 
-                        // Flutter로 메시지와 스팸 여부 전달
-                        val intent = Intent("com.example.hackdol1_1.SMS_RECEIVED")
-                        intent.putExtra("message", message)
-                        intent.putExtra("isSpam", isSpam)
-                        intent.putExtra("sender", sender)
-                        applicationContext.sendBroadcast(intent)
-                        Log.d(TAG, "srw 에서 메인액티비티로 전달: $message,$isSpam,$sender")
+                        // 메인 스레드에서 MethodChannel 호출
+                        val mainHandler = Handler(Looper.getMainLooper())
+                        mainHandler.post {
+                            val flutterEngine = FlutterEngineCache.getInstance().get("my_engine_id")
+                            if (flutterEngine != null) {
+                                val flutterJNI = FlutterJNI()
+                                flutterJNI.attachToNative()
+
+                                MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.hackdol1_1/spam_detection_event").invokeMethod("onSmsProcessed", mapOf(
+                                    "message" to message,
+                                    "isSpam" to isSpam.toString(),
+                                    "sender" to sender
+                                ))
+
+                                Log.d(TAG, "srw에서 플러터 쪽으로 보냄: $message,$isSpam,$sender")
+                            } else {
+                                Log.e(TAG, "FlutterEngine not found in cache")
+                            }
+                        }
                     }
                 } else {
                     Log.e(TAG, "Server returned error: ${response.code}")
