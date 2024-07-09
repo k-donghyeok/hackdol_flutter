@@ -71,6 +71,7 @@ class SmsReceiverWorker(context: Context, workerParams: WorkerParameters) : Work
                         intent.putExtra("isSpam", isSpam)
                         intent.putExtra("sender", sender)
                         applicationContext.sendBroadcast(intent)
+                        Log.d(TAG, "srw 에서 메인액티비티로 전달: $message,$isSpam,$sender")
                     }
                 } else {
                     Log.e(TAG, "Server returned error: ${response.code}")

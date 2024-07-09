@@ -45,7 +45,6 @@ class MainActivity : FlutterActivity() {
                 val message = call.argument<String>("message")
                 val sender = call.argument<String>("sender")
                 if (message != null && sender != null) {
-                    // WorkRequest로 예측 작업을 이동
                     val data = workDataOf("action" to "PREDICT_SPAM", "message" to message, "sender" to sender)
                     val workRequest = OneTimeWorkRequestBuilder<SmsReceiverWorker>()
                         .setInputData(data)
@@ -65,7 +64,9 @@ class MainActivity : FlutterActivity() {
         val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
         registerReceiver(callReceiver, filter)
 
-        // NotificationListenerService 활성화 체크 및 요청
+        val smsFilter = IntentFilter("com.example.hackdol1_1.SMS_RECEIVED")
+        registerReceiver(smsReceiver, smsFilter)
+
         if (!isNotificationServiceEnabled()) {
             showNotificationListenerDialog()
         }
@@ -81,9 +82,9 @@ class MainActivity : FlutterActivity() {
             Manifest.permission.MODIFY_PHONE_STATE,
             Manifest.permission.ANSWER_PHONE_CALLS,
             Manifest.permission.RECEIVE_SMS,
-            Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, // NotificationListenerService 사용 권한
-            Manifest.permission.SEND_SMS, // 추가: SMS 전송 권한
-            Manifest.permission.READ_SMS // 추가: SMS 읽기 권한
+            Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE,
+            Manifest.permission.SEND_SMS,
+            Manifest.permission.READ_SMS
         )
 
         val permissionsToRequest = permissions.filter {
@@ -121,7 +122,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(callReceiver)
-        unregisterReceiver(smsReceiver) // 추가: SMS_RECEIVED 리시버 해제
+        unregisterReceiver(smsReceiver)
     }
 
     private val smsReceiver = object : BroadcastReceiver() {
@@ -133,6 +134,7 @@ class MainActivity : FlutterActivity() {
                 val arguments = mapOf("message" to message, "isSpam" to isSpam, "sender" to sender)
                 MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger!!, spam_CHANNEL)
                     .invokeMethod("smsReceived", arguments)
+                Log.d("MainActivity", "메인액티비티에서 플러터쪽으로 전달: $message,$isSpam,$sender")
             }
         }
     }
