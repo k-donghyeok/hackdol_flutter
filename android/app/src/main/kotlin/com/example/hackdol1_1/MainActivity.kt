@@ -2,6 +2,7 @@ package com.example.hackdol1_1
 
 import android.Manifest
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -13,6 +14,9 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
+import androidx.work.WorkManager
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.workDataOf
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -29,10 +33,7 @@ class MainActivity : FlutterActivity() {
             if (call.method == "updateBlockedNumbers") {
                 val numbers = call.arguments<List<String>>()!!
                 BlockedNumbersManager.saveBlockedNumbers(this, numbers)
-                callReceiver.setBlockedNumbers(BlockedNumbersManager.loadBlockedNumbers(this))
-
                 Log.d("MainActivity", "Blocked numbers updated: $numbers")
-
                 result.success(null)
             } else {
                 result.notImplemented()
@@ -42,11 +43,17 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, spam_CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "isSpam") {
                 val message = call.argument<String>("message")
-                if (message != null) {
-                    val isSpam = callReceiver.predictSpam(message)
-                    result.success(isSpam)
+                val sender = call.argument<String>("sender")
+                if (message != null && sender != null) {
+                    // WorkRequest로 예측 작업을 이동
+                    val data = workDataOf("action" to "PREDICT_SPAM", "message" to message, "sender" to sender)
+                    val workRequest = OneTimeWorkRequestBuilder<SmsReceiverWorker>()
+                        .setInputData(data)
+                        .build()
+                    WorkManager.getInstance(applicationContext).enqueue(workRequest)
+                    result.success(true)
                 } else {
-                    result.error("INVALID_ARGUMENT", "Message is null", null)
+                    result.error("INVALID_ARGUMENT", "Message or Sender is null", null)
                 }
             } else {
                 result.notImplemented()
@@ -56,12 +63,14 @@ class MainActivity : FlutterActivity() {
         checkAndRequestPermissions()
 
         val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
-        filter.addAction("android.provider.Telephony.SMS_RECEIVED")
         registerReceiver(callReceiver, filter)
 
+        // NotificationListenerService 활성화 체크 및 요청
         if (!isNotificationServiceEnabled()) {
             showNotificationListenerDialog()
         }
+
+        ignoreBatteryOptimization(this)
     }
 
     private fun checkAndRequestPermissions() {
@@ -71,7 +80,10 @@ class MainActivity : FlutterActivity() {
             Manifest.permission.CALL_PHONE,
             Manifest.permission.MODIFY_PHONE_STATE,
             Manifest.permission.ANSWER_PHONE_CALLS,
-            Manifest.permission.RECEIVE_SMS
+            Manifest.permission.RECEIVE_SMS,
+            Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE, // NotificationListenerService 사용 권한
+            Manifest.permission.SEND_SMS, // 추가: SMS 전송 권한
+            Manifest.permission.READ_SMS // 추가: SMS 읽기 권한
         )
 
         val permissionsToRequest = permissions.filter {
@@ -109,5 +121,32 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(callReceiver)
+        unregisterReceiver(smsReceiver) // 추가: SMS_RECEIVED 리시버 해제
+    }
+
+    private val smsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            intent?.let {
+                val message = it.getStringExtra("message")
+                val isSpam = it.getBooleanExtra("isSpam", false)
+                val sender = it.getStringExtra("sender")
+                val arguments = mapOf("message" to message, "isSpam" to isSpam, "sender" to sender)
+                MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger!!, spam_CHANNEL)
+                    .invokeMethod("smsReceived", arguments)
+            }
+        }
+    }
+
+    private fun ignoreBatteryOptimization(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent()
+            val packageName = context.packageName
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                intent.data = android.net.Uri.parse("package:$packageName")
+                startActivity(intent)
+            }
+        }
     }
 }

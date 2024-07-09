@@ -1,16 +1,13 @@
 buildscript {
-    ext.kotlin_version = '1.9.20'
+    ext.kotlin_version = '1.5.31'
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
-        // 기존 dependencies...
         classpath 'com.android.tools.build:gradle:8.4.0'
-        // Firebase 플러그인 추가
         classpath 'com.google.gms:google-services:4.3.10'
-
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
