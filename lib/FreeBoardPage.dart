@@ -47,33 +47,34 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('자유게시판'),
-        backgroundColor: Colors.blue,
+        centerTitle: true,
       ),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              '공지사항',
-              style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
                 _showUsageGuide(context);
               },
               child: Text('자유게시판 사용 방법'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
             SizedBox(height: 20),
+            Text(
+              '게시물',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
             Expanded(
-              child: ListView.builder(
+              child: posts.isEmpty
+                  ? Center(child: Text('게시물이 게시되어 있지 않습니다'))
+                  : ListView.builder(
                 itemCount: posts.length,
                 itemBuilder: (context, index) {
                   final post = posts[index];
@@ -103,7 +104,6 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
           _openWritePostPage(context);
         },
         child: Icon(Icons.add),
-        backgroundColor: Colors.blue,
       ),
     );
   }
@@ -112,28 +112,7 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('클린한 자유게시판 사용 방법'),
-          content: SingleChildScrollView(
-            child: Text(
-              '1. 게시글 작성 가이드라인\n\u23CF 욕설, 비방, 혐오 표현 등 부적절한 언어 사용을 삼가해 주시기 바랍니다.\n\u23CF 불법 콘텐츠 게시, 저작권 침해 등 법률에 반하는 행위는 엄격히 금지됩니다.'
-                  '\n\u23CF 타인의 개인정보를 공개하거나 사생활을 침해하는 게시글은 삭제될 수 있습니다.\n\n '
-                  '2. 관리자 연락처 \n\u23CF문의사항이나 건의사항이 있으시면 언제든지 관리자에게 연락 주시기 바랍니다.'
-                  '\n\u23CF 이메일: shock159@naver.com \n\n '
-                  '3. 게시판 목적 \n\u23CF자유게시판은 자유로운 의견 교환을 위한 공간으로, 다양한 주제에 대한 토론과 소통을 장려합니다. \n\u23CF허용되는 주제: 취미, 문화, 일상 이야기, 정보 공유 등 \n\n'
-                  '4. 사용자 권리와 책임 \n\u23CF다른 사용자를 존중하고 예의를 갖추어 주시기 바랍니다. 모두가 쾌적한 환경에서 소통할 수 있어야 합니다. \n\u23CF개인정보 보호에 유의하여 주시기 바랍니다. 개인정보를 공유하는 행위는 개인의 책임 아래 이루어져야 합니다.\n\n'
-                  '5.커뮤니티 규칙 및 제재 \n\u23CF위 조항을 준수하지 않는 경우, 관리자는 게시물을 삭제하거나 사용자에게 경고를 발송할 수 있습니다. \n\u23CF반복적으로 규칙을 어기거나 심각한 위반 행위를 한 경우, 사용자의 계정에 대한 제재가 가해질 수 있습니다.',
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('닫기'),
-            ),
-          ],
-        );
+        return UsageGuideDialog();
       },
     );
   }
@@ -173,6 +152,10 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
                 Navigator.of(context).pop();
               },
               child: Text('아니요'),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                minimumSize: Size(80, 36), // 최소 크기 설정
+              ),
             ),
             TextButton(
               onPressed: () {
@@ -180,10 +163,102 @@ class _FreeBoardPageState extends State<FreeBoardPage> {
                 Navigator.of(context).pop();
               },
               child: Text('예'),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                minimumSize: Size(80, 36), // 최소 크기 설정
+              ),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+class UsageGuideDialog extends StatefulWidget {
+  @override
+  _UsageGuideDialogState createState() => _UsageGuideDialogState();
+}
+
+class _UsageGuideDialogState extends State<UsageGuideDialog> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  final int _totalPages = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('자유게시판 사용 방법'),
+      content: Container(
+        width: double.maxFinite,
+        height: 300,
+        child: Stack(
+          children: [
+            PageView(
+                controller: _pageController,
+                onPageChanged: (int page) {
+                  setState(() {
+                    _currentPage = page;
+                  });
+                },
+                children: [
+                  _buildPage(
+                      '1. 게시글 작성 가이드라인\n\n'
+                          '・욕설, 비방, 혐오 표현 등 부적절한 언어 사용을 삼가해 주시기 바랍니다.\n'
+                          '・불법 콘텐츠 게시, 저작권 침해 등 법률에 반하는 행위는 엄격히 금지됩니다.\n'
+                          '・타인의 개인정보를 공개하거나 사생활을 침해하는 게시글은 삭제될 수 있습니다.'
+                  ),
+                  _buildPage(
+                      '2. 관리자 연락처\n\n'
+                          '・문의사항이나 건의사항이 있으시면 언제든지 관리자에게 연락 주시기 바랍니다.\n\n\n\n\n'
+                          '  이메일: shock159@naver.com\n'
+                          '  전화번호: 010-0000-0000'
+                  ),
+                  _buildPage(
+                      '3. 게시판 목적\n\n'
+                          '・자유게시판은 자유로운 의견 교환을 위한 공간으로, 다양한 주제에 대한 토론과 소통을 장려합니다.\n'
+                          '・허용되는 주제: 취미, 문화, 일상 이야기, 정보 공유 등'
+                  ),
+                  _buildPage(
+                      '4. 사용자 권리와 책임\n\n'
+                          '・다른 사용자를 존중하고 예의를 갖추어 주시기 바랍니다. 모두가 쾌적한 환경에서 소통할 수 있어야 합니다.\n'
+                          '・개인정보 보호에 유의하여 주시기 바랍니다. 개인정보를 공유하는 행위는 개인의 책임 아래 이루어져야 합니다.'
+                  ),
+                  _buildPage(
+                      '5. 커뮤니티 규칙 및 제재\n\n'
+                          '・위 조항을 준수하지 않는 경우, 관리자는 게시물을 삭제하거나 사용자에게 경고를 발송할 수 있습니다.\n'
+                          '・반복적으로 규칙을 어기거나 심각한 위반 행위를 한 경우, 사용자의 계정에 대한 제재가 가해질 수 있습니다.'
+                  ),
+                ]
+            ),
+            Positioned(
+              bottom: 10,
+              right: 10,
+              child: Text('${_currentPage + 1} / $_totalPages'),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: Text('닫기'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPage(String text) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Text(
+          text,
+          style: TextStyle(fontSize: 16),
+        ),
+      ),
     );
   }
 }
@@ -197,7 +272,7 @@ class WritePostPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('게시글 작성'),
-        backgroundColor: Colors.blue,
+        centerTitle: true,
       ),
       body: Padding(
         padding: EdgeInsets.all(20),
@@ -233,7 +308,6 @@ class WritePostPage extends StatelessWidget {
               },
               child: Text('게시'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

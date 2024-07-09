@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MyBannerWidget extends StatelessWidget {
-  final String imageUrl;
+  final String assetImagePath;
   final String linkUrl;
   final String label;
 
   const MyBannerWidget({
-    required this.imageUrl,
+    required this.assetImagePath,
     required this.linkUrl,
     required this.label,
     Key? key,
@@ -19,18 +19,28 @@ class MyBannerWidget extends StatelessWidget {
       onTap: () {
         _launchURL(linkUrl);
       },
-      child: Column(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Image.network(
-            imageUrl,
-            width: 150,
-            height: 150,
+          Image.asset(
+            assetImagePath,
+            width: double.infinity,
+            height: double.infinity,
             fit: BoxFit.cover,
           ),
-          SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 16),
+          Container(
+            width: double.infinity,
+            color: Colors.black54, // 배경색 및 투명도 설정
+            padding: EdgeInsets.all(8),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white, // 글자색 설정
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),

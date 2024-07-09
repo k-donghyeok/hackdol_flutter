@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/block_tell.dart';
 import 'FreeBoardPage.dart';
-
-import 'chat_screen.dart';
 import 'myfirebase.dart';
 import 'nativeCommunication.dart';
 import 'RePortNumber.dart';
@@ -53,9 +49,9 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _initializePage();
     _fetchSpamReports();
-    _fetchNews();
+    _initializeBanners();
 
-    _timer = Timer.periodic(Duration(seconds: 4), (Timer timer) {
+    _timer = Timer.periodic(Duration(seconds: 2), (Timer timer) {
       if (_currentPage < newsList.length - 1) {
         _currentPage++;
       } else {
@@ -65,7 +61,7 @@ class _MainScreenState extends State<MainScreen> {
       if (_pageController.hasClients) {
         _pageController.animateToPage(
           _currentPage,
-          duration: Duration(milliseconds: 3600),
+          duration: Duration(milliseconds: 1),
           curve: Curves.easeIn,
         );
       }
@@ -110,32 +106,33 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  Future<void> _fetchNews() async {
-    final response = await http.get(Uri.parse('https://newsapi.org/v2/top-headlines?country=us&apiKey=2d48e97c9323495aada624bd870c61dc'));
-    if (response.statusCode == 200) {
-      Map<String, dynamic> jsonData = jsonDecode(response.body);
-      List<dynamic> articles = jsonData['articles'];
-      List<Map<String, dynamic>> tempList = [];
-      articles.forEach((article) {
-        tempList.add({
-          "imageUrl": article['urlToImage'] ?? '',
-          "linkUrl": article['url'] ?? '',
-          "label": article['title'] ?? ''
-        });
-      });
-      setState(() {
-        newsList = tempList;
-      });
-    } else {
-      throw Exception('Failed to load news');
-    }
+  void _initializeBanners() {
+    setState(() {
+      newsList = [
+        {
+          "assetImagePath": 'assets/image/IT1.png',
+          "linkUrl": 'https://www.itworld.co.kr/main/',
+          "label": 'IT World'
+        },
+        {
+          "assetImagePath": 'assets/image/IT2.png',
+          "linkUrl": 'https://news.daum.net/digital#1',
+          "label": 'Daum IT'
+        },
+        {
+          "assetImagePath": 'assets/image/IT3.png',
+          "linkUrl": 'https://www.hani.co.kr/arti/economy/it',
+          "label": 'Hani IT'
+        },
+      ];
+    });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('메인 화면'),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.menu),
@@ -207,18 +204,7 @@ class _MainScreenState extends State<MainScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => ReportNumberScreen()), // 번호신고 페이지로 이동
-                    );
-                  },
-                ),
-                ListTile(
-                  title: Text('챗봇'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => ChatScreen()), // 챗봇 페이지로 이동
+                      MaterialPageRoute(builder: (context) => ReportNumberScreen()), // ReportNumberScreen으로 이동
                     );
                   },
                 ),
@@ -292,7 +278,7 @@ class _MainScreenState extends State<MainScreen> {
                 itemBuilder: (context, index) {
                   final news = newsList[index];
                   return MyBannerWidget(
-                    imageUrl: news['imageUrl'],
+                    assetImagePath: news['assetImagePath'],
                     linkUrl: news['linkUrl'],
                     label: news['label'],
                   );
@@ -409,6 +395,10 @@ class _MainScreenState extends State<MainScreen> {
                       Navigator.of(context).pop();
                     },
                     child: Text("확인"),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      minimumSize: Size(80, 36), // 최소 크기 설정
+                    ),
                   ),
                 ],
               );
@@ -419,17 +409,15 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildUserInfoRow(String title, String value) {
+  Widget _buildUserInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$title:',
+            '$label: ',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          SizedBox(width: 8),
           Expanded(
             child: Text(value),
           ),
@@ -437,6 +425,8 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
+
+
 
   Future<Map<String, dynamic>> _getUserInfo() async {
     final currentUser = FirebaseAuth.instance.currentUser;

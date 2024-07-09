@@ -31,7 +31,6 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_svg: ^2.0.10+1
-  tflite_flutter: ^0.10.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -41,6 +40,7 @@ dependencies:
   firebase_auth: ^4.4.0
   cloud_firestore: ^4.4.3
   firebase_ml_model_downloader: ^0.2.5+4
+  shared_preferences : ^2.0.15
 
 
 dev_dependencies:
@@ -68,8 +68,9 @@ flutter:
     - assets/image/police.png
     - assets/image/kisa.png
     - assets/image/logo.svg
-    - assets/converted_model.tflite
-    - assets/tokenizer.json
+    - assets/image/IT1.png
+    - assets/image/IT2.png
+    - assets/image/IT3.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
