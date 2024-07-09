@@ -79,7 +79,8 @@ class _BlockPhoneNumberPageState extends State<BlockPhoneNumberPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('전화번호 차단'),
+        title: Text('번호 차단'),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

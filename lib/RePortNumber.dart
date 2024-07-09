@@ -85,6 +85,7 @@ class _ReportNumberScreenState extends State<ReportNumberScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('번호 신고'),
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

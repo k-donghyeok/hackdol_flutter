@@ -40,6 +40,7 @@ dependencies:
   firebase_auth: ^4.4.0
   cloud_firestore: ^4.4.3
   firebase_ml_model_downloader: ^0.2.5+4
+  shared_preferences : ^2.0.15
 
 
 dev_dependencies:
@@ -67,6 +68,9 @@ flutter:
     - assets/image/police.png
     - assets/image/kisa.png
     - assets/image/logo.svg
+    - assets/image/IT1.png
+    - assets/image/IT2.png
+    - assets/image/IT3.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
