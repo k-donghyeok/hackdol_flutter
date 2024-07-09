@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hackdol1_1/components/custom_form_field.dart';
 import 'package:hackdol1_1/size.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +17,12 @@ class CustomForm extends StatelessWidget {
         email: _emailController.text,
         password: _passwordController.text,
       );
+
+      // 로그인 정보 SharedPreferences에 저장
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('email', _emailController.text);
+      await prefs.setString('password', _passwordController.text);
+
       print('Successfully logged in: ${userCredential.user!.uid}');
       Navigator.pushNamed(context, "/home");
     } on FirebaseAuthException catch (e) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hackdol1_1/homepage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hackdol1_1/pages/join.dart';
@@ -31,12 +32,15 @@ class _MyAppState extends State<MyApp> {
   static const platform = MethodChannel('com.example.hackdol1_1/spam_detection');
   final FirebaseService _firebaseService = FirebaseService(); // FirebaseService 인스턴스 생성
   List<String> _blockedNumbers = [];
+  bool _isLoading = true;
+  User? _user;
 
   @override
   void initState() {
     super.initState();
     _initializeApp();
     platform.setMethodCallHandler(_handleNativeMessage);
+    _checkUser();
   }
 
   Future<void> _initializeApp() async {
@@ -50,6 +54,28 @@ class _MyAppState extends State<MyApp> {
     } catch (e) {
       print('Error loading blocked numbers: $e');
     }
+  }
+
+  Future<void> _checkUser() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? email = prefs.getString('email');
+    String? password = prefs.getString('password');
+    if (email != null && password != null) {
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        setState(() {
+          _user = userCredential.user;
+        });
+      } catch (e) {
+        print('자동 로그인 실패: $e');
+      }
+    }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _handleNativeMessage(MethodCall call) async {
@@ -114,7 +140,13 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
       ),
-      initialRoute: "/login",
+      home: _isLoading
+          ? Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      )
+          : _user == null ? LoginPage() : MainScreen(),
       routes: {
         "/login": (context) => LoginPage(),
         "/home": (context) => MainScreen(),
