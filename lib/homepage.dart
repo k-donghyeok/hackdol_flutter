@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'spam_report_detail_screen.dart';
 import 'my_banner_widget.dart';
 import 'dart:async';
+import 'block_text.dart';
 
 void main() {
   runApp(MyApp());
@@ -173,7 +174,10 @@ class _MainScreenState extends State<MainScreen> {
                 ListTile(
                   title: Text('문구 차단'),
                   onTap: () {
-                    _launchURL('https://www.example.com'); // 예시 URL
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BlockTextPage()),
+                    );
                   },
                 ),
                 ListTile(

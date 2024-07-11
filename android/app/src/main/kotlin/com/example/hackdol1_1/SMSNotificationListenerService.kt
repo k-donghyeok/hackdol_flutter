@@ -4,9 +4,6 @@ import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 
 class SMSNotificationListenerService : NotificationListenerService() {
     private val TAG = "SMSNotificationListener"
@@ -27,17 +24,30 @@ class SMSNotificationListenerService : NotificationListenerService() {
 
         Log.d(TAG, "Notification details senderNumber: $senderNumber - Sender: $sender, Message: $message")
 
+        // 차단된 전화번호 확인
         if (senderNumber != null) {
             val blockedNumbers = BlockedNumbersManager.loadBlockedNumbers(this).map { it.trim() }
-
             Log.d(TAG, "blockedNumbers: $blockedNumbers")
+
             if (blockedNumbers.contains(senderNumber)) {
                 Log.d(TAG, "Ignoring notification from blocked sender: $senderNumber")
                 cancelNotification(sbn.key)
                 return
             }
+        }
 
+        // 차단된 문구 확인
+        if (message != null) {
+            val blockedTexts = BlockedTextManager.loadBlockedTexts(this)
+            Log.d(TAG, "blockedTexts: $blockedTexts")
 
+            for (blockedText in blockedTexts) {
+                if (message.contains(blockedText)) {
+                    Log.d(TAG, "Ignoring notification with blocked text: $blockedText")
+                    cancelNotification(sbn.key)
+                    return
+                }
+            }
         }
     }
 }

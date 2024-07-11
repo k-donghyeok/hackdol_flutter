@@ -88,6 +88,13 @@ class _MyAppState extends State<MyApp> {
         bool isSpam = call.arguments["isSpam"] == "true";
         String sender = call.arguments["sender"];
         print('플러터 에서 수신완료 $message,$isSpam,$sender');
+
+        // 차단된 번호 업데이트
+        List<String> blockedNumbers = await _firebaseService.loadBlockedNumbers();
+        setState(() {
+          _blockedNumbers = blockedNumbers;
+        });
+
         _showPopupMessage(message, isSpam, sender);
       }
     } catch (e) {
@@ -160,24 +167,29 @@ class _MyAppState extends State<MyApp> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            _blockPhoneNumber(sender);
-                            overlayEntry.remove();
-                          },
-                          child: Text('Block'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                            textStyle: TextStyle(fontSize: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30.0),
+                        if (isSpam)
+                          ElevatedButton(
+                            onPressed: () {
+                              _blockPhoneNumber(sender);
+                              if (overlayEntry.mounted) {
+                                overlayEntry.remove();
+                              }
+                            },
+                            child: Text('Block'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              textStyle: TextStyle(fontSize: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
                             ),
                           ),
-                        ),
                         ElevatedButton(
                           onPressed: () {
-                            overlayEntry.remove();
+                            if (overlayEntry.mounted) {
+                              overlayEntry.remove();
+                            }
                           },
                           child: Text('Close'),
                           style: ElevatedButton.styleFrom(
@@ -189,6 +201,24 @@ class _MyAppState extends State<MyApp> {
                             ),
                           ),
                         ),
+                        if (!isSpam)
+                          ElevatedButton(
+                            onPressed: () {
+                              _postMessageAsSpam(sender, message);
+                              if (overlayEntry.mounted) {
+                                overlayEntry.remove();
+                              }
+                            },
+                            child: Text('Post'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              textStyle: TextStyle(fontSize: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -201,12 +231,68 @@ class _MyAppState extends State<MyApp> {
         overlayState.insert(overlayEntry);
 
         Future.delayed(Duration(seconds: 5), () {
-          overlayEntry.remove();
+          if (overlayEntry.mounted) {
+            overlayEntry.remove();
+          }
         });
       });
     } catch (e) {
       print('Error: $e');
       print('StackTrace: ${StackTrace.current}');
+    }
+  }
+
+  Future<void> _postMessageAsSpam(String sender, String message) async {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance.collection('spamMessages').add({
+          'sender': sender,
+          'message': message,
+          'reportedAt': FieldValue.serverTimestamp(),
+          'reportedBy': user.uid,
+        });
+        print('Message reported as spam.');
+        navigatorKey.currentState?.context.findAncestorStateOfType<ScaffoldMessengerState>()?.showSnackBar(
+          SnackBar(content: Text('Message reported as spam.')),
+        );
+      } catch (e) {
+        print('Error reporting message as spam: $e');
+        navigatorKey.currentState?.context.findAncestorStateOfType<ScaffoldMessengerState>()?.showSnackBar(
+          SnackBar(content: Text('Failed to report message as spam.')),
+        );
+      }
+    } else {
+      print('No user logged in.');
+      navigatorKey.currentState?.context.findAncestorStateOfType<ScaffoldMessengerState>()?.showSnackBar(
+        SnackBar(content: Text('No user logged in.')),
+      );
+    }
+  }
+
+  Future<void> _blockPhoneNumber(String phoneNumber) async {
+    if (_blockedNumbers.contains(phoneNumber)) {
+      navigatorKey.currentState?.context.findAncestorStateOfType<ScaffoldMessengerState>()?.showSnackBar(
+        SnackBar(content: Text('$phoneNumber is already blocked.')),
+      );
+      return;
+    }
+
+    try {
+      await _firebaseService.blockPhoneNumber(phoneNumber);
+      setState(() {
+        _blockedNumbers.add(phoneNumber);
+      });
+      navigatorKey.currentState?.context.findAncestorStateOfType<ScaffoldMessengerState>()?.showSnackBar(
+        SnackBar(content: Text('$phoneNumber has been blocked.')),
+      );
+      NativeCommunication.updateBlockedNumbers(_blockedNumbers);
+    } catch (error) {
+      print('Error blocking phone number: $error');
+      navigatorKey.currentState?.context.findAncestorStateOfType<ScaffoldMessengerState>()?.showSnackBar(
+        SnackBar(content: Text('Failed to block phone number.')),
+      );
     }
   }
 
@@ -239,6 +325,7 @@ class _MyAppState extends State<MyApp> {
         "/login": (context) => LoginPage(),
         "/home": (context) => MainScreen(),
         "/registration": (context) => RegistrationForm(),
+        "/blockPhoneNumber": (context) => BlockPhoneNumberPage(), // Add this route
       },
     );
   }

@@ -23,6 +23,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FixFlutterActivity() {
     private val CHANNEL = "com.example.hackdol1_1/block_call"
     private val spam_CHANNEL = "com.example.hackdol1_1/spam_detection"
+    private val text_CHANNEL = "com.example.hackdol1_1/block_text"
     private val ENGINE_ID = "my_engine_id"
     private val callReceiver = CallReceiver()
 
@@ -37,6 +38,17 @@ class MainActivity : FixFlutterActivity() {
                 val numbers = call.arguments<List<String>>()!!
                 BlockedNumbersManager.saveBlockedNumbers(this, numbers)
                 Log.d("MainActivity", "Blocked numbers updated: $numbers")
+                result.success(null)
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, text_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "updateBlockedTexts") {
+                val texts = call.arguments<List<String>>()!!
+                BlockedTextManager.saveBlockedTexts(this, texts)
+                Log.d("MainActivity", "Blocked texts updated: $texts")
                 result.success(null)
             } else {
                 result.notImplemented()
