@@ -185,22 +185,7 @@ class _MyAppState extends State<MyApp> {
                               ),
                             ),
                           ),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (overlayEntry.mounted) {
-                              overlayEntry.remove();
-                            }
-                          },
-                          child: Text('Close'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                            textStyle: TextStyle(fontSize: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30.0),
-                            ),
-                          ),
-                        ),
+
                         if (!isSpam)
                           ElevatedButton(
                             onPressed: () {
@@ -219,6 +204,22 @@ class _MyAppState extends State<MyApp> {
                               ),
                             ),
                           ),
+                        ElevatedButton(
+                          onPressed: () {
+                            if (overlayEntry.mounted) {
+                              overlayEntry.remove();
+                            }
+                          },
+                          child: Text('Close'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            textStyle: TextStyle(fontSize: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30.0),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -247,7 +248,7 @@ class _MyAppState extends State<MyApp> {
 
     if (user != null) {
       try {
-        await FirebaseFirestore.instance.collection('spamMessages').add({
+        await FirebaseFirestore.instance.collection('spamMessages').doc('userSubmissions').collection('messages').add({
           'sender': sender,
           'message': message,
           'reportedAt': FieldValue.serverTimestamp(),

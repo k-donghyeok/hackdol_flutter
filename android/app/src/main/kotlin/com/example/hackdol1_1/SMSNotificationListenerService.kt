@@ -24,6 +24,9 @@ class SMSNotificationListenerService : NotificationListenerService() {
 
         Log.d(TAG, "Notification details senderNumber: $senderNumber - Sender: $sender, Message: $message")
 
+
+
+
         // 차단된 전화번호 확인
         if (senderNumber != null) {
             val blockedNumbers = BlockedNumbersManager.loadBlockedNumbers(this).map { it.trim() }
@@ -49,5 +52,6 @@ class SMSNotificationListenerService : NotificationListenerService() {
                 }
             }
         }
+
     }
 }

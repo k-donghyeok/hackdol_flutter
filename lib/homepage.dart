@@ -11,6 +11,8 @@ import 'spam_report_detail_screen.dart';
 import 'my_banner_widget.dart';
 import 'dart:async';
 import 'block_text.dart';
+import 'blocked_messages_page.dart';  // 이 줄을 추가
+
 
 void main() {
   runApp(MyApp());
@@ -185,10 +187,11 @@ class _MainScreenState extends State<MainScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => BlockPhoneNumberPage()),
+                      MaterialPageRoute(builder: (context) => BlockedMessagesPage()),  // 수정된 부분
                     );
                   },
                 ),
+
               ],
             ),
             ExpansionTile(
